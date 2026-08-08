@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cluedo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Cluedo beleške</title>
+<style>
+:root{
+  --bg:#07111c; --panel:#0d1823; --panel2:#13212d; --line:#415361;
+  --text:#f4f6f7; --muted:#9eabb6; --red:#d71920; --green:#79ab58; --yellow:#f2bd32;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+body{
+  background:
+   radial-gradient(circle at 15% 10%,rgba(140,22,26,.18),transparent 28%),
+   radial-gradient(circle at 85% 25%,rgba(98,67,24,.16),transparent 30%),
+   linear-gradient(180deg,#07111c,#0a1723 55%,#050c13);
+}
+.app{width:min(100%,940px);margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 10px calc(28px + env(safe-area-inset-bottom))}
+.logo{text-align:center;font-weight:1000;font-size:clamp(58px,17vw,96px);line-height:.9;letter-spacing:-7px;margin:6px 0 18px;text-shadow:0 6px 20px #000}
+.logo .u{color:var(--red)}
+.panel{background:linear-gradient(180deg,rgba(14,25,36,.98),rgba(9,18,27,.98));border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+.step{font-size:18px;font-weight:800;margin:2px 0 11px;display:flex;align-items:center;gap:9px}
+.badge{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--red);font-size:14px}
+.counts{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:18px}
+.counts button,.toolbar button{appearance:none;border:1px solid #526473;background:#111d28;color:white;border-radius:8px;font-weight:800}
+.counts button{height:46px;font-size:17px}
+.counts button.active{background:linear-gradient(#e42127,#bd0d13);border-color:#fa4348}
+.names{display:grid;grid-template-columns:1fr;gap:9px}
+.names input{width:100%;border:1px solid #4b5c6a;background:#111d28;color:white;border-radius:8px;padding:13px 12px;font-size:16px;outline:none}
+.names input:focus{border-color:#788c9b}
+.start{width:100%;margin-top:14px;padding:13px;border-radius:8px;border:1px solid #ef3b40;background:linear-gradient(#d91f25,#b40d12);color:white;font-size:16px;font-weight:900}
+.hidden{display:none!important}
+.toolbar{display:flex;gap:8px;justify-content:flex-end;margin:10px 0}
+.toolbar button{padding:8px 11px;font-size:13px}
+.sheet{overflow-x:hidden}
+.section{margin-top:12px}
+.section-title{display:flex;align-items:center;gap:8px;font-size:24px;font-weight:1000;border-bottom:2px solid var(--red);padding:4px 4px 7px;margin-bottom:7px}
+.section-title .ico{color:var(--red);width:26px;text-align:center}
+table{border-collapse:collapse;width:100%;table-layout:fixed;background:#0d1823}
+th,td{border:1px solid #40515f;height:40px;text-align:center;padding:0}
+th{background:#111f2c;font-size:13px}
+th:first-child{width:31%;text-align:left;padding-left:6px}
+td.item{text-align:left;padding:0 9px;background:#13212d;font-size:14px}
+td.mark{cursor:pointer;user-select:none;font-size:21px;font-weight:900;background:#0f1b26}
+td.mark.s1{color:var(--green);background:#12231d}
+td.mark.s2{color:#ff2b2f;background:#261416}
+td.mark.s3{color:var(--yellow);background:#2a2414}
+.legend{margin-top:10px;text-align:center;color:#cbd2d7;font-size:12px;line-height:1.7}
+.legend .g{color:var(--green)} .legend .r{color:#ff2b2f} .legend .y{color:var(--yellow)}
+.note{color:var(--muted);font-size:12px;text-align:center;margin-top:8px}
+@media(min-width:680px){.names{grid-template-columns:repeat(2,1fr)}}
+
+td.item{
+  position:relative;
+  transition:background .15s,color .15s,opacity .15s;
+}
+td.item.not-answer{
+  color:#7f8b95;
+  background:#0e1922;
+  text-decoration:line-through;
+  opacity:.72;
+}
+td.item.not-answer::after{
+  content:"NIJE";
+  float:right;
+  color:#ff4a4f;
+  font-size:10px;
+  font-weight:900;
+  text-decoration:none;
+  border:1px solid rgba(255,74,79,.65);
+  border-radius:4px;
+  padding:2px 4px;
+  margin-top:10px;
+}
+td.item.final-answer{
+  color:#fff;
+  background:linear-gradient(90deg,#8f0e13,#d71920);
+  font-weight:900;
+  box-shadow:inset 4px 0 0 #ff5c62;
+}
+td.item.final-answer::after{
+  content:"KONAČAN ODGOVOR";
+  float:right;
+  color:#fff;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.2px;
+  border:1px solid rgba(255,255,255,.65);
+  border-radius:4px;
+  padding:2px 4px;
+  margin-top:10px;
+  text-decoration:none;
+}
+
+
+th:not(:first-child), td.mark{
+  width:auto;
+}
+th:not(:first-child){
+  font-size:11px;
+  padding:4px 2px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+td.item{
+  font-size:12px;
+  padding:0 6px;
+  line-height:1.15;
+}
+td.mark{
+  font-size:18px;
+}
+th,td{
+  height:36px;
+}
+@media(max-width:430px){
+  .app{padding-left:6px;padding-right:6px}
+  .panel{padding:8px}
+  .sheet{padding:6px}
+  .section-title{font-size:21px}
+  table{font-size:11px}
+  th:first-child{width:34%}
+  th:not(:first-child){font-size:10.5px}
+  td.item{font-size:10.5px;padding:0 4px}
+  td.mark{font-size:17px}
+}
+
+
+.own-step{margin-top:18px}
+.cards-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:7px;
+}
+.card-pick{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:40px;
+  padding:8px 9px;
+  border:1px solid #415361;
+  border-radius:8px;
+  background:#111d28;
+  color:#e9edf0;
+  font-size:13px;
+  cursor:pointer;
+}
+.card-pick input{
+  width:18px;
+  height:18px;
+  accent-color:#32a7c7;
+  flex:0 0 auto;
+}
+.card-group-title{
+  grid-column:1/-1;
+  color:#fff;
+  font-weight:900;
+  font-size:14px;
+  margin:8px 0 1px;
+  padding-bottom:4px;
+  border-bottom:1px solid #314453;
+}
+.own-actions{
+  display:grid;
+  grid-template-columns:1fr 1.4fr;
+  gap:8px;
+  margin-top:14px;
+}
+.own-actions button{
+  border-radius:8px;
+  padding:12px 10px;
+  font-size:14px;
+  font-weight:900;
+  cursor:pointer;
+}
+.back-btn{
+  border:1px solid #4b5c6a;
+  background:#111d28;
+  color:#dfe5e9;
+}
+.item.my-owned-card{
+  color:#b9f3ff !important;
+  background:linear-gradient(90deg,#0d536b 0%,#126f8c 58%,#16465a 100%) !important;
+  font-weight:900 !important;
+  text-shadow:0 0 7px rgba(127,226,255,.85);
+  box-shadow:
+    inset 4px 0 0 #4edcff,
+    inset 0 0 18px rgba(48,196,235,.22),
+    0 0 8px rgba(44,190,230,.18);
+}
+.my-legend{color:#63d5ef;font-weight:900}
+@media(max-width:430px){
+  .cards-grid{grid-template-columns:1fr 1fr}
+  .card-pick{font-size:12px;padding:7px}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="logo"><span>CL</span><span class="u">U</span><span>EDO</span></div>
+
+  <section id="setup" class="panel">
+    <div id="basicSetup">
+      <div class="step"><span class="badge">1</span>Izaberi ukupan broj igrača</div>
+      <div class="counts" id="counts"></div>
+
+      <div class="step"><span class="badge">2</span>Unesi imena protivnika</div>
+      <div class="names" id="names"></div>
+
+      <button id="toCards" class="start">DALJE — MOJE KARTE</button>
+    </div>
+
+    <div id="ownCardsStep" class="hidden own-step">
+      <div class="step"><span class="badge">3</span>Označi karte koje ti imaš</div>
+      <div id="cardPicker" class="cards-grid"></div>
+
+      <div class="own-actions">
+        <button id="backSetup" class="back-btn">NAZAD</button>
+        <button id="start" class="start" style="margin-top:0">ZAPOČNI IGRU</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="game" class="hidden">
+    <div class="toolbar">
+      <button id="clear">Obriši oznake</button>
+      <button id="new">Nova igra</button>
+    </div>
+    <div id="sheet" class="panel sheet"></div>
+    <div class="legend panel">
+      <span class="my-legend">Plavo ime</span> = Moja karta &nbsp; <span class="g">✓</span> = Protivnik ima &nbsp; <span class="r">✕</span> = Protivnik nema &nbsp;
+      <span class="y">?</span> = Ne znam &nbsp; □ = prazno
+      <div class="note">Dodirni ćeliju: ✓ → ✕ → ? → prazno. Ako je karta kod tebe ili je neki protivnik ima, označava se kao NIJE. Ako karta nije kod tebe i svi protivnici imaju ✕, automatski postaje KONAČAN ODGOVOR.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const groups = [
+    {title:"KO?", icon:"♟", items:["Grin","Mastard","Pikok","Plam","Skarlet","Vajt"]},
+    {title:"ČIM?", icon:"◆", items:["Svećnjak","Bodež","Olovna cev","Revolver","Konopac","Ključ"]},
+    {title:"GDE?", icon:"●", items:["Balska dvorana","Soba za bilijar","Staklena bašta","Trpezarija","Dvorana","Kuhinja","Biblioteka","Gostinska soba","Radna soba"]}
+  ];
+
+  const counts = document.getElementById("counts");
+  const names = document.getElementById("names");
+  const setup = document.getElementById("setup");
+  const game = document.getElementById("game");
+  const sheet = document.getElementById("sheet");
+  const basicSetup = document.getElementById("basicSetup");
+  const ownCardsStep = document.getElementById("ownCardsStep");
+  const cardPicker = document.getElementById("cardPicker");
+
+  let playerCount = 2;
+  let players = [];
+  let myCards = new Set();
+
+  function renderCounts(){
+    counts.innerHTML="";
+    for(let n=2;n<=6;n++){
+      const b=document.createElement("button");
+      b.type="button";
+      b.textContent=n;
+      if(n===playerCount)b.classList.add("active");
+      b.addEventListener("click",function(){
+        playerCount=n; renderCounts(); renderNames();
+      });
+      counts.appendChild(b);
+    }
+  }
+
+  function renderNames(){
+    const prev=[...names.querySelectorAll("input")].map(x=>x.value);
+    names.innerHTML="";
+    for(let i=0;i<playerCount-1;i++){
+      const inp=document.createElement("input");
+      inp.type="text";
+      inp.placeholder="Protivnik "+(i+1);
+      inp.value=prev[i]||"";
+      inp.autocomplete="off";
+      names.appendChild(inp);
+    }
+  }
+
+
+
+  function renderCardPicker(){
+    cardPicker.innerHTML="";
+    groups.forEach((g,gi)=>{
+      const gt=document.createElement("div");
+      gt.className="card-group-title";
+      gt.textContent=g.title;
+      cardPicker.appendChild(gt);
+
+      g.items.forEach((item,ii)=>{
+        const key=gi+"-"+ii;
+        const lab=document.createElement("label");
+        lab.className="card-pick";
+        const cb=document.createElement("input");
+        cb.type="checkbox";
+        cb.checked=myCards.has(key);
+        cb.addEventListener("change",()=>{
+          if(cb.checked) myCards.add(key);
+          else myCards.delete(key);
+        });
+        const span=document.createElement("span");
+        span.textContent=item;
+        lab.appendChild(cb);
+        lab.appendChild(span);
+        cardPicker.appendChild(lab);
+      });
+    });
+  }
+
+  function applyMyCards(){
+    document.querySelectorAll(".item").forEach(el=>el.classList.remove("my-owned-card"));
+    myCards.forEach(key=>{
+      const parts=key.split("-");
+      const label=document.querySelector('.item[data-item-key="'+parts[0]+'-'+parts[1]+'"]');
+      if(label) label.classList.add("my-owned-card");
+    });
+  }
+
+  function symbol(s){ return s===1?"✓":s===2?"✕":s===3?"?":""; }
+
+  function renderGame(){
+    sheet.innerHTML="";
+    groups.forEach((g,gi)=>{
+      const sec=document.createElement("div");
+      sec.className="section";
+      const title=document.createElement("div");
+      title.className="section-title";
+      title.innerHTML='<span class="ico">'+g.icon+'</span><span>'+g.title+'</span>';
+      sec.appendChild(title);
+
+      const table=document.createElement("table");
+      const thead=document.createElement("thead");
+      const hr=document.createElement("tr");
+      const h0=document.createElement("th");
+      h0.textContent=g.title; hr.appendChild(h0);
+      players.forEach((p,pi)=>{
+        const th=document.createElement("th");
+        th.textContent=p;
+        th.title=p;
+        hr.appendChild(th)
+      });
+      thead.appendChild(hr); table.appendChild(thead);
+
+      const tbody=document.createElement("tbody");
+      g.items.forEach((item,ii)=>{
+        const tr=document.createElement("tr");
+        const td0=document.createElement("td"); td0.className="item"; td0.textContent=item; td0.dataset.itemKey=gi+"-"+ii; tr.appendChild(td0);
+        players.forEach((p,pi)=>{
+          const td=document.createElement("td");
+          td.className="mark";
+          td.dataset.key=gi+"-"+ii+"-"+pi;
+          td.dataset.state="0";
+          td.addEventListener("click",function(){
+            let s=(Number(td.dataset.state)+1)%4;
+            td.dataset.state=String(s);
+            td.textContent=symbol(s);
+            td.className="mark"+(s?" s"+s:"");
+
+            updateDeductions();
+            save();
+          });
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      sec.appendChild(table);
+      sheet.appendChild(sec);
+    });
+  }
+
+
+  function updateDeductions(){
+    groups.forEach((g,gi)=>{
+      g.items.forEach((item,ii)=>{
+        const rowKey=gi+"-"+ii;
+        const label=document.querySelector('.item[data-item-key="'+rowKey+'"]');
+        if(!label) return;
+
+        const cells=[...document.querySelectorAll('.mark[data-key^="'+rowKey+'-"]')];
+        const states=cells.map(td=>Number(td.dataset.state||0));
+
+        // Ako je karta kod tebe ili je neki protivnik ima, nije u koverti.
+        const someoneHas = myCards.has(rowKey) || states.includes(1);
+
+        // Ako karta nije kod tebe i svi protivnici imaju ✕, ona je konačan odgovor.
+        const everyoneNo = !myCards.has(rowKey) &&
+                           states.length===players.length &&
+                           states.every(s=>s===2);
+
+        label.classList.remove("not-answer","final-answer");
+        if(everyoneNo){
+          label.classList.add("final-answer");
+        }else if(someoneHas){
+          label.classList.add("not-answer");
+        }
+      });
+    });
+  }
+
+  function save(){
+    const marks={};
+    document.querySelectorAll(".mark").forEach(td=>{
+      const s=Number(td.dataset.state||0);
+      if(s) marks[td.dataset.key]=s;
+    });
+    localStorage.setItem("cluedo-mobile-v1",JSON.stringify({players,marks,myCards:[...myCards]}));
+  }
+
+  function restoreMarks(marks){
+    document.querySelectorAll(".mark").forEach(td=>{
+      const s=Number((marks||{})[td.dataset.key]||0);
+      td.dataset.state=String(s);
+      td.textContent=symbol(s);
+      td.className="mark"+(s?" s"+s:"");
+    });
+    updateDeductions();
+  }
+
+  document.getElementById("toCards").addEventListener("click",function(){
+    players=[...names.querySelectorAll("input")].map((x,i)=>x.value.trim()||("Protivnik "+(i+1)));
+    renderCardPicker();
+    basicSetup.classList.add("hidden");
+    ownCardsStep.classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  });
+
+
+  document.getElementById("backSetup").addEventListener("click",function(){
+    ownCardsStep.classList.add("hidden");
+    basicSetup.classList.remove("hidden");
+  });
+
+  document.getElementById("start").addEventListener("click",function(){
+    renderGame();
+    applyMyCards();
+    updateDeductions();
+    setup.classList.add("hidden");
+    game.classList.remove("hidden");
+    save();
+    window.scrollTo({top:0,behavior:"smooth"});
+  });
+
+  document.getElementById("clear").addEventListener("click",function(){
+    document.querySelectorAll(".mark").forEach(td=>{td.dataset.state="0";td.textContent="";td.className="mark"});
+    applyMyCards();
+    updateDeductions();
+    save();
+  });
+
+  document.getElementById("new").addEventListener("click",function(){
+    localStorage.removeItem("cluedo-mobile-v1");
+    playerCount=2;players=[];myCards=new Set();game.classList.add("hidden");setup.classList.remove("hidden");ownCardsStep.classList.add("hidden");basicSetup.classList.remove("hidden");
+    renderCounts();renderNames();window.scrollTo({top:0,behavior:"smooth"});
+  });
+
+  function load(){
+    const raw=localStorage.getItem("cluedo-mobile-v1");
+    if(!raw)return;
+    try{
+      const data=JSON.parse(raw);
+      if(!Array.isArray(data.players)||data.players.length<1||data.players.length>5)return;
+      players=data.players;playerCount=players.length+1;myCards=new Set(data.myCards||[]);
+      renderGame();restoreMarks(data.marks||{});applyMyCards();updateDeductions();
+      setup.classList.add("hidden");game.classList.remove("hidden");
+    }catch(e){}
+  }
+
+  renderCounts();renderNames();load();
+
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
