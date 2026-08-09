@@ -714,6 +714,7 @@ td.mark{
       // If I own this card, every opponent must have X and those cells are locked.
       document.querySelectorAll('.mark[data-key^="'+parts[0]+'-'+parts[1]+'-"]').forEach(td=>{
         td.dataset.state="2";
+        td.dataset.autoX="0";
         td.dataset.locked="1";
         td.textContent="✕";
         td.className="mark s2 locked-my-card";
@@ -727,20 +728,56 @@ td.mark{
   function setCellState(td,s){
     if(td.dataset.locked==="1") return;
 
+    const parts=td.dataset.key.split("-");
+    const rowPrefix=parts[0]+"-"+parts[1]+"-";
+    const rowCells=[...document.querySelectorAll('.mark[data-key^="'+rowPrefix+'"]')];
+    const oldState=Number(td.dataset.state||0);
+
+    // If the current ✓ is being removed, clear only the X marks
+    // that were added automatically because of that ✓.
+    if(oldState===1 && s!==1){
+      rowCells.forEach(cell=>{
+        if(cell.dataset.autoX==="1"){
+          cell.dataset.autoX="0";
+          cell.dataset.state="0";
+          cell.textContent="";
+          cell.className="mark";
+        }
+      });
+    }
+
     if(s===1){
-      const parts=td.dataset.key.split("-");
-      const rowPrefix=parts[0]+"-"+parts[1]+"-";
-      document.querySelectorAll('.mark[data-key^="'+rowPrefix+'"]').forEach(cell=>{
+      // First remove previous automatically generated X marks.
+      rowCells.forEach(cell=>{
+        if(cell.dataset.autoX==="1"){
+          cell.dataset.autoX="0";
+          cell.dataset.state="0";
+          cell.textContent="";
+          cell.className="mark";
+        }
+      });
+
+      // Exactly one player can have the card:
+      // selected cell gets ✓, all other opponent cells get automatic X.
+      rowCells.forEach(cell=>{
         if(cell===td || cell.dataset.locked==="1") return;
+
         cell.dataset.state="2";
+        cell.dataset.autoX="1";
         cell.textContent=symbol(2);
         cell.className="mark s2";
       });
+
+      td.dataset.autoX="0";
+    }else{
+      // A manually selected non-check state is not an automatic X.
+      td.dataset.autoX="0";
     }
 
     td.dataset.state=String(s);
     td.textContent=symbol(s);
     td.className="mark"+(s?" s"+s:"");
+
     updateDeductions();
     save();
   }
@@ -942,6 +979,7 @@ td.mark{
           td.className="mark";
           td.dataset.key=gi+"-"+ii+"-"+pi;
           td.dataset.state="0";
+          td.dataset.autoX="0";
           attachMarkGestures(td);
           tr.appendChild(td);
         });
@@ -995,11 +1033,20 @@ td.mark{
 
   function save(){
     const marks={};
+    const autoX={};
+
     document.querySelectorAll(".mark").forEach(td=>{
       const s=Number(td.dataset.state||0);
       if(s) marks[td.dataset.key]=s;
+      if(td.dataset.autoX==="1") autoX[td.dataset.key]=1;
     });
-    localStorage.setItem("cluedo-mobile-v1",JSON.stringify({players,marks,myCards:[...myCards]}));
+
+    localStorage.setItem("cluedo-mobile-v1",JSON.stringify({
+      players,
+      marks,
+      autoX,
+      myCards:[...myCards]
+    }));
   }
 
   function restoreMarks(marks){
@@ -1046,6 +1093,7 @@ td.mark{
   document.getElementById("clear").addEventListener("click",function(){
     document.querySelectorAll(".mark").forEach(td=>{
       td.dataset.state="0";
+      td.dataset.autoX="0";
       td.dataset.locked="0";
       td.textContent="";
       td.className="mark";
@@ -1068,7 +1116,14 @@ td.mark{
       const data=JSON.parse(raw);
       if(!Array.isArray(data.players)||data.players.length<1||data.players.length>5)return;
       players=data.players;playerCount=players.length+1;myCards=new Set(data.myCards||[]);
-      renderGame();restoreMarks(data.marks||{});applyMyCards();updateDeductions();
+      renderGame();
+      restoreMarks(data.marks||{});
+      Object.keys(data.autoX||{}).forEach(key=>{
+        const cell=document.querySelector('.mark[data-key="'+key+'"]');
+        if(cell) cell.dataset.autoX="1";
+      });
+      applyMyCards();
+      updateDeductions();
       setup.classList.add("hidden");game.classList.remove("hidden");
     }catch(e){}
   }
