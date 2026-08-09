@@ -205,7 +205,6 @@ th,td{
 
 
 .mark-menu{
-  display:none;
   position:fixed;
   z-index:9999;
   display:flex;
@@ -218,7 +217,7 @@ th,td{
   transform:translate(-50%,-100%);
   touch-action:none;
 }
-.mark-menu.hidden{display:none !important}
+.mark-menu.hidden{display:none}
 .mark-option{
   width:43px;
   height:43px;
@@ -505,11 +504,6 @@ td.mark{
   78%,100%{content:""}
 }
 
-
-/* Long-press chooser exists only as a JS-created overlay */
-.mark-menu{display:none !important}
-.mark-menu.open{display:flex !important}
-
 </style>
 </head>
 <body>
@@ -576,10 +570,9 @@ td.mark{
     </div>
   </section>
 </div>
-<div class="mark-option" data-state="2">✕</div>
-  <div class="mark-option" data-state="1">✓</div>
-  <div class="mark-option" data-state="0">□</div>
-</div>
+
+
+
 
 <script>
 (function(){
@@ -601,17 +594,7 @@ td.mark{
   const tutorialContinue = document.getElementById("tutorialContinue");
   const tapDemoMark = document.getElementById("tapDemoMark");
   let tapDemoTimer = null;
-  const markMenu = document.createElement("div");
-  markMenu.id = "markMenu";
-  markMenu.className = "mark-menu hidden";
-  markMenu.setAttribute("aria-hidden","true");
-  markMenu.innerHTML = `
-    <div class="mark-option" data-state="3">?</div>
-    <div class="mark-option" data-state="2">✕</div>
-    <div class="mark-option" data-state="1">✓</div>
-    <div class="mark-option" data-state="0">□</div>
-  `;
-  document.body.appendChild(markMenu);
+  let markMenu = null;
   let touchHold = null;
 
   let playerCount = 2;
@@ -783,11 +766,28 @@ td.mark{
     save();
   }
 
-  function positionMarkMenu(td){
-    const r=td.getBoundingClientRect();
+  function createMarkMenu(){
+    // Remove any stale chooser first.
+    if(markMenu && markMenu.parentNode){
+      markMenu.parentNode.removeChild(markMenu);
+    }
 
-    markMenu.classList.remove("hidden");
-    markMenu.classList.add("open");
+    markMenu=document.createElement("div");
+    markMenu.className="mark-menu";
+    markMenu.setAttribute("aria-hidden","false");
+    markMenu.innerHTML=`
+      <div class="mark-option" data-state="3">?</div>
+      <div class="mark-option" data-state="2">✕</div>
+      <div class="mark-option" data-state="1">✓</div>
+      <div class="mark-option" data-state="0">□</div>
+    `;
+    document.body.appendChild(markMenu);
+  }
+
+  function positionMarkMenu(td){
+    createMarkMenu();
+
+    const r=td.getBoundingClientRect();
     markMenu.style.visibility="hidden";
 
     const mw=markMenu.offsetWidth || 235;
@@ -805,23 +805,21 @@ td.mark{
       markMenu.style.transform="translate(-50%,0)";
     }
 
-    markMenu.style.setProperty("visibility","visible","important");
-    markMenu.style.setProperty("opacity","1","important");
-    markMenu.setAttribute("aria-hidden","false");
+    markMenu.style.visibility="visible";
+    if(navigator.vibrate) navigator.vibrate(20);
   }
 
-
-
   function hideMarkMenu(){
-    markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
-    markMenu.classList.remove("open");
-    markMenu.classList.add("hidden");
-    markMenu.style.removeProperty("visibility");
-    markMenu.style.removeProperty("opacity");
-    markMenu.setAttribute("aria-hidden","true");
+    if(!markMenu) return;
+    if(markMenu.parentNode){
+      markMenu.parentNode.removeChild(markMenu);
+    }
+    markMenu=null;
   }
 
   function stateUnderFinger(x,y){
+    if(!markMenu) return null;
+
     let found=null;
 
     markMenu.querySelectorAll(".mark-option").forEach(opt=>{
