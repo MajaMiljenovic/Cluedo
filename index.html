@@ -640,6 +640,7 @@ td.mark{
   let playerCount = 2;
   let players = [];
   let myCards = new Set();
+  let rowBackups = {};
 
   function renderCounts(){
     counts.innerHTML="";
@@ -701,6 +702,7 @@ td.mark{
   function applyMyCards(){
     // Reset visual ownership and unlock all cells first.
     document.querySelectorAll(".item").forEach(el=>el.classList.remove("my-owned-card"));
+    rowBackups={};
     document.querySelectorAll(".mark").forEach(td=>{
       td.classList.remove("locked-my-card");
       td.dataset.locked="0";
@@ -733,48 +735,73 @@ td.mark{
     const rowCells=[...document.querySelectorAll('.mark[data-key^="'+rowPrefix+'"]')];
     const oldState=Number(td.dataset.state||0);
 
-    // If the current ✓ is being removed, clear only the X marks
-    // that were added automatically because of that ✓.
-    if(oldState===1 && s!==1){
-      rowCells.forEach(cell=>{
-        if(cell.dataset.autoX==="1"){
-          cell.dataset.autoX="0";
-          cell.dataset.state="0";
-          cell.textContent="";
-          cell.className="mark";
-        }
-      });
+    function snapshotRow(){
+      if(rowBackups[rowPrefix]) return;
+      rowBackups[rowPrefix]=rowCells.map(cell=>({
+        state:Number(cell.dataset.state||0),
+        autoX:cell.dataset.autoX==="1"
+      }));
     }
 
-    if(s===1){
-      // First remove previous automatically generated X marks.
-      rowCells.forEach(cell=>{
-        if(cell.dataset.autoX==="1"){
-          cell.dataset.autoX="0";
-          cell.dataset.state="0";
-          cell.textContent="";
-          cell.className="mark";
-        }
+    function restoreRow(){
+      const backup=rowBackups[rowPrefix];
+      if(!backup) return;
+
+      rowCells.forEach((cell,i)=>{
+        const b=backup[i] || {state:0,autoX:false};
+        cell.dataset.state=String(b.state);
+        cell.dataset.autoX=b.autoX ? "1" : "0";
+        cell.textContent=symbol(b.state);
+        cell.className="mark"+(b.state?" s"+b.state:"");
       });
 
-      // Exactly one player can have the card:
-      // selected cell gets ✓, all other opponent cells get automatic X.
+      delete rowBackups[rowPrefix];
+    }
+
+    // A new ✓ temporarily overrides the whole row, but we remember
+    // exactly how every cell looked before it.
+    if(s===1){
+      snapshotRow();
+
       rowCells.forEach(cell=>{
         if(cell===td || cell.dataset.locked==="1") return;
-
         cell.dataset.state="2";
         cell.dataset.autoX="1";
         cell.textContent=symbol(2);
         cell.className="mark s2";
       });
 
+      td.dataset.state="1";
       td.dataset.autoX="0";
-    }else{
-      // A manually selected non-check state is not an automatic X.
-      td.dataset.autoX="0";
+      td.textContent=symbol(1);
+      td.className="mark s1";
+
+      updateDeductions();
+      save();
+      return;
+    }
+
+    // Removing/changing a ✓ restores the row to the exact state
+    // it had before that ✓ was selected.
+    if(oldState===1 && rowBackups[rowPrefix]){
+      restoreRow();
+
+      // If the user chose ? or ✕, apply that new choice after restoring.
+      // If the user chose blank, leave the entire row exactly as it was.
+      if(s!==0){
+        td.dataset.state=String(s);
+        td.dataset.autoX="0";
+        td.textContent=symbol(s);
+        td.className="mark s"+s;
+      }
+
+      updateDeductions();
+      save();
+      return;
     }
 
     td.dataset.state=String(s);
+    td.dataset.autoX="0";
     td.textContent=symbol(s);
     td.className="mark"+(s?" s"+s:"");
 
@@ -1045,6 +1072,7 @@ td.mark{
       players,
       marks,
       autoX,
+      rowBackups,
       myCards:[...myCards]
     }));
   }
@@ -1105,7 +1133,7 @@ td.mark{
 
   document.getElementById("new").addEventListener("click",function(){
     localStorage.removeItem("cluedo-mobile-v1");
-    playerCount=2;players=[];myCards=new Set();game.classList.add("hidden");setup.classList.remove("hidden");ownCardsStep.classList.add("hidden");tutorialStep.classList.add("hidden");basicSetup.classList.remove("hidden");
+    playerCount=2;players=[];myCards=new Set();rowBackups={};game.classList.add("hidden");setup.classList.remove("hidden");ownCardsStep.classList.add("hidden");tutorialStep.classList.add("hidden");basicSetup.classList.remove("hidden");
     renderCounts();renderNames();window.scrollTo({top:0,behavior:"smooth"});
   });
 
@@ -1115,7 +1143,7 @@ td.mark{
     try{
       const data=JSON.parse(raw);
       if(!Array.isArray(data.players)||data.players.length<1||data.players.length>5)return;
-      players=data.players;playerCount=players.length+1;myCards=new Set(data.myCards||[]);
+      players=data.players;playerCount=players.length+1;myCards=new Set(data.myCards||[]);rowBackups=data.rowBackups||{};
       renderGame();
       restoreMarks(data.marks||{});
       Object.keys(data.autoX||{}).forEach(key=>{
