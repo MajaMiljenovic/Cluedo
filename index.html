@@ -219,8 +219,8 @@ th,td{
 }
 .mark-menu.hidden{display:none}
 .mark-option{
-  width:48px;
-  height:48px;
+  width:43px;
+  height:43px;
   display:grid;
   place-items:center;
   border-radius:9px;
@@ -256,12 +256,20 @@ td.mark{
   -webkit-user-select:none;
   user-select:none;
   -webkit-touch-callout:none;
-  touch-action:manipulation;
+  touch-action:none;
 }
 .mark-menu{
-  -webkit-user-select:none;
-  user-select:none;
-  -webkit-touch-callout:none;
+  pointer-events:none;
+}
+.mark-option{
+  width:50px !important;
+  height:50px !important;
+}
+.mark-option.hovered{
+  transform:scale(1.14);
+  background:#29465b !important;
+  border-color:#9bc2d8 !important;
+  box-shadow:0 0 0 2px rgba(106,199,240,.25);
 }
 
 </style>
@@ -301,7 +309,7 @@ td.mark{
     <div class="legend panel">
       <span class="my-legend">Plavo ime</span> = Moja karta (protivnici automatski imaju zaključan ✕) &nbsp; <span class="g">✓</span> = Protivnik ima &nbsp; <span class="r">✕</span> = Protivnik nema &nbsp;
       <span class="y">?</span> = Ne znam &nbsp; □ = prazno
-      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko pola sekunde, ne podiži ga, prevuci na ✓, ✕, ? ili □ i tek onda pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
+      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko pola sekunde, zatim bez podizanja prevuci na ✓, ✕, ? ili □ i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
     </div>
   </section>
 </div>
@@ -323,11 +331,7 @@ td.mark{
   const ownCardsStep = document.getElementById("ownCardsStep");
   const cardPicker = document.getElementById("cardPicker");
   const markMenu = document.getElementById("markMenu");
-  let pressTimer = null;
-  let menuCell = null;
-  let longPressOpened = false;
-  let selectedMenuState = null;
-  let suppressNextClick = false;
+  let gesture = null;
 
   let playerCount = 2;
   let players = [];
@@ -428,173 +432,135 @@ td.mark{
   function positionMarkMenu(td){
     const r=td.getBoundingClientRect();
 
-    // First show it invisibly so we know its real width.
-    markMenu.style.visibility="hidden";
     markMenu.classList.remove("hidden");
+    markMenu.style.visibility="hidden";
 
-    const mw=markMenu.offsetWidth || 205;
-    const half=mw/2;
+    const menuWidth=markMenu.offsetWidth || 225;
+    const half=menuWidth/2;
     let center=r.left+r.width/2;
+    center=Math.max(half+6,Math.min(window.innerWidth-half-6,center));
 
-    // Keep the chooser inside the viewport.
-    center=Math.max(half+8,Math.min(window.innerWidth-half-8,center));
+    if(r.top>85){
+      markMenu.style.left=center+"px";
+      markMenu.style.top=(r.top-10)+"px";
+      markMenu.style.transform="translate(-50%,-100%)";
+    }else{
+      markMenu.style.left=center+"px";
+      markMenu.style.top=(r.bottom+10)+"px";
+      markMenu.style.transform="translate(-50%,0)";
+    }
 
-    markMenu.style.left=center+"px";
-    markMenu.style.top=Math.max(70,r.top-10)+"px";
     markMenu.style.visibility="visible";
   }
 
   function openMarkMenu(td){
-    menuCell=td;
-    longPressOpened=true;
-    selectedMenuState=null;
-    markMenu.setAttribute("aria-hidden","false");
+    if(!gesture || gesture.cell!==td) return;
+    gesture.menuOpen=true;
+    gesture.selected=null;
     positionMarkMenu(td);
-    if(navigator.vibrate) navigator.vibrate(20);
-  }
-
-  function closeMarkMenu(applyChoice){
-    if(applyChoice && menuCell && selectedMenuState!==null){
-      setCellState(menuCell,selectedMenuState);
-    }
-    markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
-    markMenu.classList.add("hidden");
-    markMenu.setAttribute("aria-hidden","true");
-    menuCell=null;
-    selectedMenuState=null;
-    setTimeout(()=>{longPressOpened=false},60);
+    markMenu.setAttribute("aria-hidden","false");
+    if(navigator.vibrate) navigator.vibrate(18);
   }
 
   function updateMenuHover(x,y){
+    if(!gesture || !gesture.menuOpen) return;
+
     let found=null;
-    markMenu.querySelectorAll(".mark-option").forEach(o=>{
-      const r=o.getBoundingClientRect();
-      const inside=x>=r.left && x<=r.right && y>=r.top && y<=r.bottom;
-      o.classList.toggle("hovered",inside);
-      if(inside) found=Number(o.dataset.state);
+    markMenu.querySelectorAll(".mark-option").forEach(opt=>{
+      const r=opt.getBoundingClientRect();
+      const pad=9;
+      const inside=x>=r.left-pad && x<=r.right+pad &&
+                   y>=r.top-pad && y<=r.bottom+pad;
+      opt.classList.toggle("hovered",inside);
+      if(inside) found=Number(opt.dataset.state);
     });
-    selectedMenuState=found;
+
+    gesture.selected=found;
+  }
+
+  function closeMarkMenu(){
+    markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
+    markMenu.classList.add("hidden");
+    markMenu.setAttribute("aria-hidden","true");
   }
 
   function attachMarkGestures(td){
-    let touchStartX=0;
-    let touchStartY=0;
-    let touchMoved=false;
-
-    function beginLongPress(clientX,clientY){
+    td.addEventListener("pointerdown",function(e){
       if(td.dataset.locked==="1") return;
-      touchStartX=clientX;
-      touchStartY=clientY;
-      touchMoved=false;
-      clearTimeout(pressTimer);
-      pressTimer=setTimeout(()=>{
-        openMarkMenu(td);
-      },420);
-    }
+      if(e.pointerType==="mouse" && e.button!==0) return;
 
-    function moveLongPress(clientX,clientY){
-      if(Math.abs(clientX-touchStartX)>8 || Math.abs(clientY-touchStartY)>8){
-        touchMoved=true;
+      e.preventDefault();
+
+      try{
+        td.setPointerCapture(e.pointerId);
+      }catch(_){}
+
+      gesture={
+        cell:td,
+        pointerId:e.pointerId,
+        startX:e.clientX,
+        startY:e.clientY,
+        moved:false,
+        menuOpen:false,
+        selected:null,
+        timer:setTimeout(()=>openMarkMenu(td),450)
+      };
+    });
+
+    td.addEventListener("pointermove",function(e){
+      if(!gesture || gesture.cell!==td || gesture.pointerId!==e.pointerId) return;
+      e.preventDefault();
+
+      const dx=e.clientX-gesture.startX;
+      const dy=e.clientY-gesture.startY;
+
+      if(!gesture.menuOpen && Math.hypot(dx,dy)>12){
+        gesture.moved=true;
+        clearTimeout(gesture.timer);
       }
 
-      if(!markMenu.classList.contains("hidden") && menuCell===td){
-        updateMenuHover(clientX,clientY);
-      }else if(touchMoved){
-        clearTimeout(pressTimer);
-      }
-    }
-
-    function finishLongPress(clientX,clientY){
-      clearTimeout(pressTimer);
-
-      if(!markMenu.classList.contains("hidden") && menuCell===td){
-        updateMenuHover(clientX,clientY);
-        closeMarkMenu(true);
-        return true;
-      }
-      return false;
-    }
-
-    // iPhone / Android
-    td.addEventListener("touchstart",function(e){
-      if(td.dataset.locked==="1") return;
-      if(e.touches.length!==1) return;
-      const t=e.touches[0];
-      beginLongPress(t.clientX,t.clientY);
-    },{passive:true});
-
-    td.addEventListener("touchmove",function(e){
-      if(td.dataset.locked==="1") return;
-      if(e.touches.length!==1) return;
-      const t=e.touches[0];
-
-      if(!markMenu.classList.contains("hidden") && menuCell===td){
-        // While the chooser is open, stop the page from scrolling
-        // so the finger can slide cleanly across the options.
-        e.preventDefault();
-      }
-
-      moveLongPress(t.clientX,t.clientY);
-    },{passive:false});
-
-    td.addEventListener("touchend",function(e){
-      if(td.dataset.locked==="1") return;
-
-      const t=e.changedTouches && e.changedTouches[0];
-      const x=t ? t.clientX : touchStartX;
-      const y=t ? t.clientY : touchStartY;
-
-      const usedMenu=finishLongPress(x,y);
-      if(usedMenu){
-        e.preventDefault();
-        return;
-      }
-
-      // A normal short tap still cycles through states.
-      if(!touchMoved){
-        let s=(Number(td.dataset.state)+1)%4;
-        setCellState(td,s);
-        suppressNextClick=true;
-        setTimeout(()=>{suppressNextClick=false},350);
-      }
-    },{passive:false});
-
-    td.addEventListener("touchcancel",function(){
-      clearTimeout(pressTimer);
-      if(!markMenu.classList.contains("hidden") && menuCell===td){
-        closeMarkMenu(false);
+      if(gesture.menuOpen){
+        updateMenuHover(e.clientX,e.clientY);
       }
     });
 
-    // Desktop / laptop mouse
-    td.addEventListener("mousedown",function(e){
-      if(td.dataset.locked==="1" || e.button!==0) return;
-      beginLongPress(e.clientX,e.clientY);
-    });
+    td.addEventListener("pointerup",function(e){
+      if(!gesture || gesture.cell!==td || gesture.pointerId!==e.pointerId) return;
+      e.preventDefault();
 
-    td.addEventListener("mousemove",function(e){
-      if(e.buttons!==1) return;
-      moveLongPress(e.clientX,e.clientY);
-    });
+      clearTimeout(gesture.timer);
 
-    td.addEventListener("mouseup",function(e){
-      if(td.dataset.locked==="1") return;
-      const usedMenu=finishLongPress(e.clientX,e.clientY);
-      if(usedMenu){
-        suppressNextClick=true;
-        setTimeout(()=>{suppressNextClick=false},350);
-      }
-    });
+      if(gesture.menuOpen){
+        updateMenuHover(e.clientX,e.clientY);
 
-    td.addEventListener("click",function(){
-      if(td.dataset.locked==="1") return;
-      if(suppressNextClick || longPressOpened) return;
+        if(gesture.selected!==null){
+          setCellState(td,gesture.selected);
+        }
 
-      // On non-touch devices a normal click cycles states.
-      if(!("ontouchstart" in window)){
-        let s=(Number(td.dataset.state)+1)%4;
+        closeMarkMenu();
+      }else if(!gesture.moved){
+        // Normal short tap
+        const s=(Number(td.dataset.state)+1)%4;
         setCellState(td,s);
       }
+
+      try{
+        td.releasePointerCapture(e.pointerId);
+      }catch(_){}
+
+      gesture=null;
+    });
+
+    td.addEventListener("pointercancel",function(e){
+      if(!gesture || gesture.cell!==td || gesture.pointerId!==e.pointerId) return;
+
+      clearTimeout(gesture.timer);
+
+      if(gesture.menuOpen){
+        closeMarkMenu();
+      }
+
+      gesture=null;
     });
 
     td.addEventListener("contextmenu",function(e){
