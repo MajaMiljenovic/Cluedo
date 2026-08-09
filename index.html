@@ -259,17 +259,18 @@ td.mark{
   touch-action:none;
 }
 .mark-menu{
+  z-index:99999;
   pointer-events:none;
 }
 .mark-option{
-  width:50px !important;
-  height:50px !important;
+  width:52px !important;
+  height:52px !important;
 }
 .mark-option.hovered{
-  transform:scale(1.14);
+  transform:scale(1.15);
   background:#29465b !important;
   border-color:#9bc2d8 !important;
-  box-shadow:0 0 0 2px rgba(106,199,240,.25);
+  box-shadow:0 0 0 2px rgba(106,199,240,.28);
 }
 
 </style>
@@ -309,7 +310,7 @@ td.mark{
     <div class="legend panel">
       <span class="my-legend">Plavo ime</span> = Moja karta (protivnici automatski imaju zaključan ✕) &nbsp; <span class="g">✓</span> = Protivnik ima &nbsp; <span class="r">✕</span> = Protivnik nema &nbsp;
       <span class="y">?</span> = Ne znam &nbsp; □ = prazno
-      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko pola sekunde, zatim bez podizanja prevuci na ✓, ✕, ? ili □ i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
+      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko 0,4 s, zatim bez podizanja prevuci na ✓, ✕, ? ili □ i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
     </div>
   </section>
 </div>
@@ -331,7 +332,8 @@ td.mark{
   const ownCardsStep = document.getElementById("ownCardsStep");
   const cardPicker = document.getElementById("cardPicker");
   const markMenu = document.getElementById("markMenu");
-  let gesture = null;
+  let touchGesture = null;
+  let mouseGesture = null;
 
   let playerCount = 2;
   let players = [];
@@ -435,132 +437,189 @@ td.mark{
     markMenu.classList.remove("hidden");
     markMenu.style.visibility="hidden";
 
-    const menuWidth=markMenu.offsetWidth || 225;
-    const half=menuWidth/2;
+    const mw=markMenu.offsetWidth || 235;
+    const half=mw/2;
     let center=r.left+r.width/2;
     center=Math.max(half+6,Math.min(window.innerWidth-half-6,center));
 
-    if(r.top>85){
+    if(r.top>90){
       markMenu.style.left=center+"px";
-      markMenu.style.top=(r.top-10)+"px";
+      markMenu.style.top=(r.top-12)+"px";
       markMenu.style.transform="translate(-50%,-100%)";
     }else{
       markMenu.style.left=center+"px";
-      markMenu.style.top=(r.bottom+10)+"px";
+      markMenu.style.top=(r.bottom+12)+"px";
       markMenu.style.transform="translate(-50%,0)";
     }
 
     markMenu.style.visibility="visible";
   }
 
-  function openMarkMenu(td){
-    if(!gesture || gesture.cell!==td) return;
-    gesture.menuOpen=true;
-    gesture.selected=null;
+  function setCellState(td,s){
+    if(td.dataset.locked==="1") return;
+    td.dataset.state=String(s);
+    td.textContent=symbol(s);
+    td.className="mark"+(s?" s"+s:"");
+    updateDeductions();
+    save();
+  }
+
+  function showMenuForCell(td){
     positionMarkMenu(td);
     markMenu.setAttribute("aria-hidden","false");
     if(navigator.vibrate) navigator.vibrate(18);
   }
 
-  function updateMenuHover(x,y){
-    if(!gesture || !gesture.menuOpen) return;
-
-    let found=null;
-    markMenu.querySelectorAll(".mark-option").forEach(opt=>{
-      const r=opt.getBoundingClientRect();
-      const pad=9;
-      const inside=x>=r.left-pad && x<=r.right+pad &&
-                   y>=r.top-pad && y<=r.bottom+pad;
-      opt.classList.toggle("hovered",inside);
-      if(inside) found=Number(opt.dataset.state);
-    });
-
-    gesture.selected=found;
-  }
-
-  function closeMarkMenu(){
+  function hideMenu(){
     markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
     markMenu.classList.add("hidden");
     markMenu.setAttribute("aria-hidden","true");
   }
 
+  function menuStateAt(x,y){
+    let selected=null;
+    markMenu.querySelectorAll(".mark-option").forEach(opt=>{
+      const r=opt.getBoundingClientRect();
+      const pad=10;
+      const hit=x>=r.left-pad && x<=r.right+pad &&
+                y>=r.top-pad && y<=r.bottom+pad;
+      opt.classList.toggle("hovered",hit);
+      if(hit) selected=Number(opt.dataset.state);
+    });
+    return selected;
+  }
+
   function attachMarkGestures(td){
-    td.addEventListener("pointerdown",function(e){
+    // MOBILE: touch events on the cell + document-level tracking.
+    td.addEventListener("touchstart",function(e){
       if(td.dataset.locked==="1") return;
-      if(e.pointerType==="mouse" && e.button!==0) return;
+      if(e.touches.length!==1) return;
 
       e.preventDefault();
 
-      try{
-        td.setPointerCapture(e.pointerId);
-      }catch(_){}
-
-      gesture={
+      const t=e.touches[0];
+      touchGesture={
         cell:td,
-        pointerId:e.pointerId,
+        startX:t.clientX,
+        startY:t.clientY,
+        lastX:t.clientX,
+        lastY:t.clientY,
+        moved:false,
+        menuOpen:false,
+        selected:null,
+        timer:setTimeout(()=>{
+          if(!touchGesture || touchGesture.cell!==td) return;
+          touchGesture.menuOpen=true;
+          showMenuForCell(td);
+        },380)
+      };
+    },{passive:false});
+
+    document.addEventListener("touchmove",function(e){
+      if(!touchGesture || e.touches.length!==1) return;
+
+      const t=e.touches[0];
+      touchGesture.lastX=t.clientX;
+      touchGesture.lastY=t.clientY;
+
+      const dx=t.clientX-touchGesture.startX;
+      const dy=t.clientY-touchGesture.startY;
+
+      if(touchGesture.menuOpen){
+        e.preventDefault();
+        touchGesture.selected=menuStateAt(t.clientX,t.clientY);
+        return;
+      }
+
+      // Allow a bit of natural finger jitter without cancelling long press.
+      if(Math.hypot(dx,dy)>22){
+        touchGesture.moved=true;
+        clearTimeout(touchGesture.timer);
+      }
+    },{passive:false});
+
+    document.addEventListener("touchend",function(e){
+      if(!touchGesture) return;
+
+      clearTimeout(touchGesture.timer);
+
+      const t=e.changedTouches && e.changedTouches[0];
+      const x=t ? t.clientX : touchGesture.lastX;
+      const y=t ? t.clientY : touchGesture.lastY;
+
+      if(touchGesture.menuOpen){
+        e.preventDefault();
+        const selected=menuStateAt(x,y);
+        if(selected!==null){
+          setCellState(touchGesture.cell,selected);
+        }
+        hideMenu();
+      }else if(!touchGesture.moved){
+        // Short tap.
+        const s=(Number(touchGesture.cell.dataset.state)+1)%4;
+        setCellState(touchGesture.cell,s);
+      }
+
+      touchGesture=null;
+    },{passive:false});
+
+    document.addEventListener("touchcancel",function(){
+      if(!touchGesture) return;
+      clearTimeout(touchGesture.timer);
+      if(touchGesture.menuOpen) hideMenu();
+      touchGesture=null;
+    },{passive:true});
+
+    // DESKTOP fallback.
+    td.addEventListener("mousedown",function(e){
+      if(td.dataset.locked==="1" || e.button!==0) return;
+
+      mouseGesture={
+        cell:td,
         startX:e.clientX,
         startY:e.clientY,
         moved:false,
         menuOpen:false,
         selected:null,
-        timer:setTimeout(()=>openMarkMenu(td),450)
+        timer:setTimeout(()=>{
+          if(!mouseGesture || mouseGesture.cell!==td) return;
+          mouseGesture.menuOpen=true;
+          showMenuForCell(td);
+        },380)
       };
     });
 
-    td.addEventListener("pointermove",function(e){
-      if(!gesture || gesture.cell!==td || gesture.pointerId!==e.pointerId) return;
-      e.preventDefault();
+    document.addEventListener("mousemove",function(e){
+      if(!mouseGesture) return;
 
-      const dx=e.clientX-gesture.startX;
-      const dy=e.clientY-gesture.startY;
+      const dx=e.clientX-mouseGesture.startX;
+      const dy=e.clientY-mouseGesture.startY;
 
-      if(!gesture.menuOpen && Math.hypot(dx,dy)>12){
-        gesture.moved=true;
-        clearTimeout(gesture.timer);
-      }
-
-      if(gesture.menuOpen){
-        updateMenuHover(e.clientX,e.clientY);
+      if(mouseGesture.menuOpen){
+        mouseGesture.selected=menuStateAt(e.clientX,e.clientY);
+      }else if(Math.hypot(dx,dy)>12){
+        mouseGesture.moved=true;
+        clearTimeout(mouseGesture.timer);
       }
     });
 
-    td.addEventListener("pointerup",function(e){
-      if(!gesture || gesture.cell!==td || gesture.pointerId!==e.pointerId) return;
-      e.preventDefault();
+    document.addEventListener("mouseup",function(e){
+      if(!mouseGesture) return;
 
-      clearTimeout(gesture.timer);
+      clearTimeout(mouseGesture.timer);
 
-      if(gesture.menuOpen){
-        updateMenuHover(e.clientX,e.clientY);
-
-        if(gesture.selected!==null){
-          setCellState(td,gesture.selected);
+      if(mouseGesture.menuOpen){
+        const selected=menuStateAt(e.clientX,e.clientY);
+        if(selected!==null){
+          setCellState(mouseGesture.cell,selected);
         }
-
-        closeMarkMenu();
-      }else if(!gesture.moved){
-        // Normal short tap
-        const s=(Number(td.dataset.state)+1)%4;
-        setCellState(td,s);
+        hideMenu();
+      }else if(!mouseGesture.moved && e.target===mouseGesture.cell){
+        const s=(Number(mouseGesture.cell.dataset.state)+1)%4;
+        setCellState(mouseGesture.cell,s);
       }
 
-      try{
-        td.releasePointerCapture(e.pointerId);
-      }catch(_){}
-
-      gesture=null;
-    });
-
-    td.addEventListener("pointercancel",function(e){
-      if(!gesture || gesture.cell!==td || gesture.pointerId!==e.pointerId) return;
-
-      clearTimeout(gesture.timer);
-
-      if(gesture.menuOpen){
-        closeMarkMenu();
-      }
-
-      gesture=null;
+      mouseGesture=null;
     });
 
     td.addEventListener("contextmenu",function(e){
