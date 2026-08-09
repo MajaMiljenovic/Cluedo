@@ -506,18 +506,9 @@ td.mark{
 }
 
 
-/* Hard-hide the floating chooser until long press opens it */
-.mark-menu{
-  display:none !important;
-  visibility:hidden !important;
-  opacity:0 !important;
-  pointer-events:none !important;
-}
-.mark-menu.open{
-  display:flex !important;
-  visibility:visible !important;
-  opacity:1 !important;
-}
+/* Long-press chooser exists only as a JS-created overlay */
+.mark-menu{display:none !important}
+.mark-menu.open{display:flex !important}
 
 </style>
 </head>
@@ -585,11 +576,7 @@ td.mark{
     </div>
   </section>
 </div>
-
-
-<div id="markMenu" class="mark-menu hidden" aria-hidden="true">
-  <div class="mark-option" data-state="3">?</div>
-  <div class="mark-option" data-state="2">✕</div>
+<div class="mark-option" data-state="2">✕</div>
   <div class="mark-option" data-state="1">✓</div>
   <div class="mark-option" data-state="0">□</div>
 </div>
@@ -614,9 +601,17 @@ td.mark{
   const tutorialContinue = document.getElementById("tutorialContinue");
   const tapDemoMark = document.getElementById("tapDemoMark");
   let tapDemoTimer = null;
-  const markMenu = document.getElementById("markMenu");
-  markMenu.classList.remove("open");
-  markMenu.classList.add("hidden");
+  const markMenu = document.createElement("div");
+  markMenu.id = "markMenu";
+  markMenu.className = "mark-menu hidden";
+  markMenu.setAttribute("aria-hidden","true");
+  markMenu.innerHTML = `
+    <div class="mark-option" data-state="3">?</div>
+    <div class="mark-option" data-state="2">✕</div>
+    <div class="mark-option" data-state="1">✓</div>
+    <div class="mark-option" data-state="0">□</div>
+  `;
+  document.body.appendChild(markMenu);
   let touchHold = null;
 
   let playerCount = 2;
@@ -685,7 +680,7 @@ td.mark{
     // Reset visual ownership and unlock all cells first.
     document.querySelectorAll(".item").forEach(el=>el.classList.remove("my-owned-card"));
     rowBackups={};
-    document.querySelectorAll(".mark").forEach(td=>{
+    document.querySelectorAll("td.mark").forEach(td=>{
       td.classList.remove("locked-my-card");
       td.dataset.locked="0";
     });
@@ -1046,7 +1041,7 @@ td.mark{
     const marks={};
     const autoX={};
 
-    document.querySelectorAll(".mark").forEach(td=>{
+    document.querySelectorAll("td.mark").forEach(td=>{
       const s=Number(td.dataset.state||0);
       if(s) marks[td.dataset.key]=s;
       if(td.dataset.autoX==="1") autoX[td.dataset.key]=1;
@@ -1062,7 +1057,7 @@ td.mark{
   }
 
   function restoreMarks(marks){
-    document.querySelectorAll(".mark").forEach(td=>{
+    document.querySelectorAll("td.mark").forEach(td=>{
       const s=Number((marks||{})[td.dataset.key]||0);
       td.dataset.state=String(s);
       td.textContent=symbol(s);
@@ -1138,7 +1133,7 @@ document.getElementById("start").addEventListener("click",function(){
   });
 
   document.getElementById("clear").addEventListener("click",function(){
-    document.querySelectorAll(".mark").forEach(td=>{
+    document.querySelectorAll("td.mark").forEach(td=>{
       td.dataset.state="0";
       td.dataset.autoX="0";
       td.dataset.locked="0";
