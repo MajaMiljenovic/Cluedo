@@ -270,7 +270,7 @@ td.mark{
   transform:scale(1.15);
   background:#29465b !important;
   border-color:#9bc2d8 !important;
-  box-shadow:0 0 0 2px rgba(106,199,240,.28);
+  box-shadow:0 0 0 2px rgba(106,199,240,.30);
 }
 
 </style>
@@ -310,7 +310,7 @@ td.mark{
     <div class="legend panel">
       <span class="my-legend">Plavo ime</span> = Moja karta (protivnici automatski imaju zaključan ✕) &nbsp; <span class="g">✓</span> = Protivnik ima &nbsp; <span class="r">✕</span> = Protivnik nema &nbsp;
       <span class="y">?</span> = Ne znam &nbsp; □ = prazno
-      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko 0,4 s, zatim bez podizanja prevuci na ✓, ✕, ? ili □ i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
+      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor drži prst na ćeliji oko pola sekunde; kada se pojave ✓ ✕ ? □, ne podiži prst nego prevuci na željeni znak i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
     </div>
   </section>
 </div>
@@ -332,8 +332,7 @@ td.mark{
   const ownCardsStep = document.getElementById("ownCardsStep");
   const cardPicker = document.getElementById("cardPicker");
   const markMenu = document.getElementById("markMenu");
-  let touchGesture = null;
-  let mouseGesture = null;
+  let touchHold = null;
 
   let playerCount = 2;
   let players = [];
@@ -453,6 +452,7 @@ td.mark{
     }
 
     markMenu.style.visibility="visible";
+    markMenu.setAttribute("aria-hidden","false");
   }
 
   function setCellState(td,s){
@@ -464,41 +464,46 @@ td.mark{
     save();
   }
 
-  function showMenuForCell(td){
-    positionMarkMenu(td);
-    markMenu.setAttribute("aria-hidden","false");
-    if(navigator.vibrate) navigator.vibrate(18);
-  }
-
-  function hideMenu(){
+  function hideMarkMenu(){
     markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
     markMenu.classList.add("hidden");
     markMenu.setAttribute("aria-hidden","true");
   }
 
-  function menuStateAt(x,y){
-    let selected=null;
+  function stateUnderFinger(x,y){
+    let found=null;
+
     markMenu.querySelectorAll(".mark-option").forEach(opt=>{
       const r=opt.getBoundingClientRect();
-      const pad=10;
-      const hit=x>=r.left-pad && x<=r.right+pad &&
-                y>=r.top-pad && y<=r.bottom+pad;
-      opt.classList.toggle("hovered",hit);
-      if(hit) selected=Number(opt.dataset.state);
+      const padX=10;
+      const padY=20;
+
+      const inside=
+        x>=r.left-padX && x<=r.right+padX &&
+        y>=r.top-padY && y<=r.bottom+padY;
+
+      opt.classList.toggle("hovered",inside);
+      if(inside) found=Number(opt.dataset.state);
     });
-    return selected;
+
+    if(touchHold) touchHold.selected=found;
+    return found;
   }
 
   function attachMarkGestures(td){
-    // MOBILE: touch events on the cell + document-level tracking.
+    // Phone/tablet.
     td.addEventListener("touchstart",function(e){
-      if(td.dataset.locked==="1") return;
-      if(e.touches.length!==1) return;
+      if(td.dataset.locked==="1" || e.touches.length!==1) return;
 
       e.preventDefault();
 
       const t=e.touches[0];
-      touchGesture={
+
+      if(touchHold && touchHold.timer){
+        clearTimeout(touchHold.timer);
+      }
+
+      touchHold={
         cell:td,
         startX:t.clientX,
         startY:t.clientY,
@@ -507,125 +512,93 @@ td.mark{
         moved:false,
         menuOpen:false,
         selected:null,
-        timer:setTimeout(()=>{
-          if(!touchGesture || touchGesture.cell!==td) return;
-          touchGesture.menuOpen=true;
-          showMenuForCell(td);
-        },380)
+        timer:null
       };
+
+      touchHold.timer=setTimeout(()=>{
+        if(!touchHold || touchHold.cell!==td) return;
+        touchHold.menuOpen=true;
+        positionMarkMenu(td);
+        if(navigator.vibrate) navigator.vibrate(20);
+      },450);
     },{passive:false});
 
-    document.addEventListener("touchmove",function(e){
-      if(!touchGesture || e.touches.length!==1) return;
-
-      const t=e.touches[0];
-      touchGesture.lastX=t.clientX;
-      touchGesture.lastY=t.clientY;
-
-      const dx=t.clientX-touchGesture.startX;
-      const dy=t.clientY-touchGesture.startY;
-
-      if(touchGesture.menuOpen){
-        e.preventDefault();
-        touchGesture.selected=menuStateAt(t.clientX,t.clientY);
-        return;
-      }
-
-      // Allow a bit of natural finger jitter without cancelling long press.
-      if(Math.hypot(dx,dy)>22){
-        touchGesture.moved=true;
-        clearTimeout(touchGesture.timer);
-      }
-    },{passive:false});
-
-    document.addEventListener("touchend",function(e){
-      if(!touchGesture) return;
-
-      clearTimeout(touchGesture.timer);
-
-      const t=e.changedTouches && e.changedTouches[0];
-      const x=t ? t.clientX : touchGesture.lastX;
-      const y=t ? t.clientY : touchGesture.lastY;
-
-      if(touchGesture.menuOpen){
-        e.preventDefault();
-        const selected=menuStateAt(x,y);
-        if(selected!==null){
-          setCellState(touchGesture.cell,selected);
-        }
-        hideMenu();
-      }else if(!touchGesture.moved){
-        // Short tap.
-        const s=(Number(touchGesture.cell.dataset.state)+1)%4;
-        setCellState(touchGesture.cell,s);
-      }
-
-      touchGesture=null;
-    },{passive:false});
-
-    document.addEventListener("touchcancel",function(){
-      if(!touchGesture) return;
-      clearTimeout(touchGesture.timer);
-      if(touchGesture.menuOpen) hideMenu();
-      touchGesture=null;
-    },{passive:true});
-
-    // DESKTOP fallback.
-    td.addEventListener("mousedown",function(e){
-      if(td.dataset.locked==="1" || e.button!==0) return;
-
-      mouseGesture={
-        cell:td,
-        startX:e.clientX,
-        startY:e.clientY,
-        moved:false,
-        menuOpen:false,
-        selected:null,
-        timer:setTimeout(()=>{
-          if(!mouseGesture || mouseGesture.cell!==td) return;
-          mouseGesture.menuOpen=true;
-          showMenuForCell(td);
-        },380)
-      };
-    });
-
-    document.addEventListener("mousemove",function(e){
-      if(!mouseGesture) return;
-
-      const dx=e.clientX-mouseGesture.startX;
-      const dy=e.clientY-mouseGesture.startY;
-
-      if(mouseGesture.menuOpen){
-        mouseGesture.selected=menuStateAt(e.clientX,e.clientY);
-      }else if(Math.hypot(dx,dy)>12){
-        mouseGesture.moved=true;
-        clearTimeout(mouseGesture.timer);
-      }
-    });
-
-    document.addEventListener("mouseup",function(e){
-      if(!mouseGesture) return;
-
-      clearTimeout(mouseGesture.timer);
-
-      if(mouseGesture.menuOpen){
-        const selected=menuStateAt(e.clientX,e.clientY);
-        if(selected!==null){
-          setCellState(mouseGesture.cell,selected);
-        }
-        hideMenu();
-      }else if(!mouseGesture.moved && e.target===mouseGesture.cell){
-        const s=(Number(mouseGesture.cell.dataset.state)+1)%4;
-        setCellState(mouseGesture.cell,s);
-      }
-
-      mouseGesture=null;
+    // Desktop fallback: normal click cycles.
+    td.addEventListener("click",function(){
+      if("ontouchstart" in window) return;
+      if(td.dataset.locked==="1") return;
+      const s=(Number(td.dataset.state)+1)%4;
+      setCellState(td,s);
     });
 
     td.addEventListener("contextmenu",function(e){
       e.preventDefault();
     });
   }
+
+  // Global touch tracking: this keeps working even after the finger leaves the cell.
+  document.addEventListener("touchmove",function(e){
+    if(!touchHold || e.touches.length!==1) return;
+
+    const t=e.touches[0];
+    touchHold.lastX=t.clientX;
+    touchHold.lastY=t.clientY;
+
+    const dx=t.clientX-touchHold.startX;
+    const dy=t.clientY-touchHold.startY;
+
+    if(touchHold.menuOpen){
+      e.preventDefault();
+      stateUnderFinger(t.clientX,t.clientY);
+      return;
+    }
+
+    // Small finger jitter is allowed; a real scroll cancels the hold.
+    if(Math.hypot(dx,dy)>22){
+      touchHold.moved=true;
+      clearTimeout(touchHold.timer);
+    }
+  },{passive:false});
+
+  document.addEventListener("touchend",function(e){
+    if(!touchHold) return;
+
+    clearTimeout(touchHold.timer);
+
+    const t=e.changedTouches && e.changedTouches[0];
+    const x=t ? t.clientX : touchHold.lastX;
+    const y=t ? t.clientY : touchHold.lastY;
+
+    if(touchHold.menuOpen){
+      e.preventDefault();
+
+      const selected=stateUnderFinger(x,y);
+
+      if(selected!==null){
+        setCellState(touchHold.cell,selected);
+      }
+
+      hideMarkMenu();
+    }else if(!touchHold.moved){
+      // Short tap keeps the old cycle behavior.
+      const s=(Number(touchHold.cell.dataset.state)+1)%4;
+      setCellState(touchHold.cell,s);
+    }
+
+    touchHold=null;
+  },{passive:false});
+
+  document.addEventListener("touchcancel",function(){
+    if(!touchHold) return;
+
+    clearTimeout(touchHold.timer);
+
+    if(touchHold.menuOpen){
+      hideMarkMenu();
+    }
+
+    touchHold=null;
+  },{passive:true});
 
   function renderGame(){
     sheet.innerHTML="";

@@ -1,10 +1,11 @@
-const CACHE="cluedo-v19";
+const CACHE="cluedo-v20";
 const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-180.png","./icon-512.png"];
 
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
 });
+
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
@@ -12,6 +13,7 @@ self.addEventListener("activate", event => {
       .then(() => self.clients.claim())
   );
 });
+
 self.addEventListener("fetch", event => {
   if(event.request.mode==="navigate"){
     event.respondWith(
@@ -25,5 +27,8 @@ self.addEventListener("fetch", event => {
     );
     return;
   }
-  event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));
+
+  event.respondWith(
+    caches.match(event.request).then(cached=>cached||fetch(event.request))
+  );
 });
