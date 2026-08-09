@@ -344,22 +344,45 @@ td.mark{
 .demo-finger{
   position:absolute;
   left:50%;
-  bottom:12px;
-  width:36px;height:55px;
+  bottom:-18px;
+  width:46px;
+  height:92px;
   transform:translateX(-50%);
-  border-radius:20px 20px 15px 15px;
-  background:linear-gradient(#f0c6a8,#dca27c);
-  box-shadow:0 5px 14px rgba(0,0,0,.3);
+  border-radius:24px 24px 19px 19px;
+  background:linear-gradient(90deg,#d99e78 0%,#efc3a1 30%,#f4cfb1 58%,#dda47d 100%);
+  border:1px solid rgba(116,70,49,.28);
+  box-shadow:
+    0 8px 16px rgba(0,0,0,.28),
+    inset 5px 0 8px rgba(255,255,255,.12),
+    inset -5px 0 8px rgba(120,68,44,.10);
   animation:demoFinger 3.4s infinite;
+}
+.demo-finger::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:9px;
+  width:22px;
+  height:29px;
+  transform:translateX(-50%);
+  border-radius:13px 13px 10px 10px;
+  background:linear-gradient(180deg,#f8ddca,#edc2a5);
+  border:1px solid rgba(145,91,65,.22);
+  box-shadow:inset 0 -2px 3px rgba(150,88,59,.08);
 }
 .demo-finger::after{
   content:"";
   position:absolute;
-  left:50%;top:-6px;
+  left:50%;
+  bottom:-19px;
+  width:76px;
+  height:46px;
   transform:translateX(-50%);
-  width:19px;height:12px;
-  border-radius:50%;
-  background:#f4cfb4;
+  border-radius:38px 38px 12px 12px;
+  background:linear-gradient(180deg,#e9b28d,#d79770);
+  border:1px solid rgba(116,70,49,.22);
+  box-shadow:0 7px 14px rgba(0,0,0,.18);
+  z-index:-1;
 }
 .demo-arrow{
   position:absolute;
@@ -373,7 +396,11 @@ td.mark{
   animation:demoArrow 3.4s infinite;
 }
 @keyframes demoFinger{
-  0%,12%{transform:translate(-50%,0)}
+  0%,10%{transform:translate(-50%,0) rotate(0deg)}
+  20%,39%{transform:translate(-50%,-8px) scale(.97) rotate(0deg)}
+  50%,73%{transform:translate(-50%,-86px) scale(.97) rotate(-2deg)}
+  84%,100%{transform:translate(-50%,0) rotate(0deg)}
+}
   22%,40%{transform:translate(-50%,-9px) scale(.96)}
   50%,74%{transform:translate(-50%,-88px) scale(.96)}
   86%,100%{transform:translate(-50%,0)}
