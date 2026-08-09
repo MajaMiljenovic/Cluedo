@@ -1,4 +1,4 @@
-const CACHE="cluedo-v20";
+const CACHE="cluedo-v21";
 const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-180.png","./icon-512.png"];
 
 self.addEventListener("install", event => {

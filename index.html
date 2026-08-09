@@ -310,10 +310,14 @@ td.mark{
     <div class="legend panel">
       <span class="my-legend">Plavo ime</span> = Moja karta (protivnici automatski imaju zaključan ✕) &nbsp; <span class="g">✓</span> = Protivnik ima &nbsp; <span class="r">✕</span> = Protivnik nema &nbsp;
       <span class="y">?</span> = Ne znam &nbsp; □ = prazno
-      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor drži prst na ćeliji oko pola sekunde; kada se pojave ✓ ✕ ? □, ne podiži prst nego prevuci na željeni znak i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
+      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko pola sekunde. Kada se pojave ✓ ✕ ? □, bez podizanja prsta prevuci na željeni znak i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
     </div>
   </section>
 </div>
+
+
+<div id="markMenu" class="mark-menu hidden" aria-hidden="true">
+  <div class="mark-option" data-state="1">✓</div>
 
 <script>
 (function(){
@@ -455,14 +459,7 @@ td.mark{
     markMenu.setAttribute("aria-hidden","false");
   }
 
-  function setCellState(td,s){
-    if(td.dataset.locked==="1") return;
-    td.dataset.state=String(s);
-    td.textContent=symbol(s);
-    td.className="mark"+(s?" s"+s:"");
-    updateDeductions();
-    save();
-  }
+
 
   function hideMarkMenu(){
     markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
@@ -763,9 +760,6 @@ td.mark{
   }
 })();
 </script>
-
-<div id="markMenu" class="mark-menu hidden" aria-hidden="true">
-  <div class="mark-option" data-state="1">✓</div>
   <div class="mark-option" data-state="2">✕</div>
   <div class="mark-option" data-state="3">?</div>
   <div class="mark-option" data-state="0">□</div>
