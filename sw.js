@@ -1,4 +1,4 @@
-const CACHE="cluedo-v22";
+const CACHE="cluedo-v23";
 const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-180.png","./icon-512.png"];
 
 self.addEventListener("install", event => {
@@ -27,8 +27,5 @@ self.addEventListener("fetch", event => {
     );
     return;
   }
-
-  event.respondWith(
-    caches.match(event.request).then(cached=>cached||fetch(event.request))
-  );
+  event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));
 });

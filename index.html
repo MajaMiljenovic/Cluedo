@@ -461,7 +461,7 @@ td.mark{
 
       <div class="own-actions">
         <button id="backSetup" class="back-btn">NAZAD</button>
-        <button id="start" class="start" style="margin-top:0">ZAPOČNI IGRU</button>
+        <button id="start" type="button" class="start" style="margin-top:0">ZAPOČNI IGRU</button>
       </div>
     </div>
   </section>
@@ -500,7 +500,7 @@ td.mark{
       <div class="demo-finger"></div>
     </div>
 
-    <button id="tutorialContinue" class="tutorial-btn">RAZUMEM — ZAPOČNI IGRU</button>
+    <button id="tutorialContinue" type="button" class="tutorial-btn">RAZUMEM — ZAPOČNI IGRU</button>
   </div>
 </div>
 
@@ -900,12 +900,12 @@ td.mark{
     basicSetup.classList.remove("hidden");
   });
 
-  document.getElementById("start").addEventListener("click",function(){
+  function showGestureTutorial(){
     gestureTutorial.classList.remove("hidden");
     gestureTutorial.setAttribute("aria-hidden","false");
-  });
+  }
 
-  tutorialContinue.addEventListener("click",function(){
+  function beginCluedoGame(){
     gestureTutorial.classList.add("hidden");
     gestureTutorial.setAttribute("aria-hidden","true");
 
@@ -916,7 +916,17 @@ td.mark{
     game.classList.remove("hidden");
     save();
     window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  document.getElementById("start").onclick = showGestureTutorial;
+  tutorialContinue.onclick = beginCluedoGame;
+
+  gestureTutorial.addEventListener("click",function(e){
+    if(e.target===gestureTutorial){
+      beginCluedoGame();
+    }
   });
+
 
   document.getElementById("clear").addEventListener("click",function(){
     document.querySelectorAll(".mark").forEach(td=>{
