@@ -274,87 +274,69 @@ td.mark{
 }
 
 
-.tutorial-overlay{
-  position:fixed;
-  inset:0;
-  z-index:100000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-  background:rgba(3,9,15,.92);
-  backdrop-filter:blur(6px);
-}
-.tutorial-overlay.hidden{display:none}
-.tutorial-card{
-  width:min(92vw,420px);
-  padding:22px 18px 18px;
-  border:1px solid #405565;
-  border-radius:18px;
-  background:linear-gradient(180deg,#101e2b,#0b151f);
-  box-shadow:0 18px 48px rgba(0,0,0,.55);
+.tutorial-step{margin-top:4px}
+.tutorial-step.hidden{display:none!important}
+.tutorial-box{
   text-align:center;
+  padding:4px 0 2px;
 }
-.tutorial-card h3{
-  margin:0 0 8px;
-  font-size:22px;
-  color:#fff;
+.tutorial-box h3{
+  margin:0 0 7px;
+  font-size:21px;
 }
-.tutorial-card p{
-  margin:0 0 18px;
-  color:#bdc8d1;
-  font-size:14px;
+.tutorial-box p{
+  margin:0 auto 14px;
+  max-width:360px;
+  color:#b9c5ce;
+  font-size:13px;
   line-height:1.45;
 }
 .tutorial-demo{
   position:relative;
-  height:210px;
-  margin:2px auto 16px;
+  height:205px;
+  margin:0 auto 15px;
+  border:1px solid #314555;
   border-radius:14px;
   overflow:hidden;
-  background:#0d1924;
-  border:1px solid #304454;
+  background:#0c1822;
 }
 .demo-cell{
   position:absolute;
   left:50%;
-  bottom:24px;
-  width:90px;
-  height:52px;
+  bottom:22px;
   transform:translateX(-50%);
+  width:92px;
+  height:50px;
   display:grid;
   place-items:center;
-  border:1px solid #506473;
-  border-radius:9px;
+  border:1px solid #516574;
+  border-radius:8px;
   background:#111f2b;
-  color:#dfe6eb;
-  font-weight:800;
+  color:#e2e8ec;
   font-size:13px;
+  font-weight:800;
 }
 .demo-options{
   position:absolute;
   left:50%;
-  bottom:98px;
-  transform:translateX(-50%) scale(.82);
+  bottom:101px;
+  transform:translateX(-50%) scale(.85);
   display:flex;
   gap:7px;
-  opacity:0;
   padding:7px;
-  border:1px solid #4f6473;
-  border-radius:12px;
+  border:1px solid #506574;
+  border-radius:11px;
   background:#0b1620;
-  animation:optionsAppear 3.2s infinite;
+  opacity:0;
+  animation:demoOptions 3.4s infinite;
 }
 .demo-options span{
-  width:42px;
-  height:42px;
-  display:grid;
-  place-items:center;
+  width:42px;height:42px;
+  display:grid;place-items:center;
   border:1px solid #405464;
   border-radius:8px;
   background:#142331;
-  font-size:22px;
-  font-weight:900;
+  font-size:22px;font-weight:900;
 }
 .demo-options span:nth-child(1){color:var(--green)}
 .demo-options span:nth-child(2){color:#ff2b2f}
@@ -362,80 +344,49 @@ td.mark{
 .demo-finger{
   position:absolute;
   left:50%;
-  bottom:16px;
-  width:38px;
-  height:56px;
+  bottom:12px;
+  width:36px;height:55px;
   transform:translateX(-50%);
-  border-radius:20px 20px 16px 16px;
-  background:linear-gradient(180deg,#f0c5a5,#dba27c);
-  box-shadow:0 5px 14px rgba(0,0,0,.28);
-  animation:fingerGuide 3.2s infinite;
+  border-radius:20px 20px 15px 15px;
+  background:linear-gradient(#f0c6a8,#dca27c);
+  box-shadow:0 5px 14px rgba(0,0,0,.3);
+  animation:demoFinger 3.4s infinite;
 }
 .demo-finger::after{
   content:"";
   position:absolute;
-  left:50%;
-  top:-7px;
-  width:20px;
-  height:13px;
+  left:50%;top:-6px;
   transform:translateX(-50%);
+  width:19px;height:12px;
   border-radius:50%;
   background:#f4cfb4;
-}
-.demo-ring{
-  position:absolute;
-  left:50%;
-  bottom:47px;
-  width:54px;
-  height:54px;
-  transform:translateX(-50%);
-  border:2px solid rgba(89,211,241,.8);
-  border-radius:50%;
-  opacity:0;
-  animation:pressRing 3.2s infinite;
 }
 .demo-arrow{
   position:absolute;
   left:50%;
   bottom:76px;
   transform:translateX(-50%);
-  color:#67d8f4;
-  font-size:30px;
+  color:#64d8f4;
+  font-size:29px;
   font-weight:900;
   opacity:0;
-  animation:arrowUp 3.2s infinite;
+  animation:demoArrow 3.4s infinite;
 }
-.tutorial-btn{
-  width:100%;
-  border:1px solid #ef3b40;
-  border-radius:8px;
-  padding:12px 14px;
-  background:linear-gradient(#d91f25,#b40d12);
-  color:#fff;
-  font-size:15px;
-  font-weight:900;
-  cursor:pointer;
+@keyframes demoFinger{
+  0%,12%{transform:translate(-50%,0)}
+  22%,40%{transform:translate(-50%,-9px) scale(.96)}
+  50%,74%{transform:translate(-50%,-88px) scale(.96)}
+  86%,100%{transform:translate(-50%,0)}
 }
-@keyframes fingerGuide{
-  0%,12%{transform:translate(-50%,0);filter:brightness(1)}
-  22%,38%{transform:translate(-50%,-10px) scale(.96);filter:brightness(.96)}
-  48%,72%{transform:translate(-50%,-88px) scale(.96)}
-  82%,100%{transform:translate(-50%,0);filter:brightness(1)}
+@keyframes demoOptions{
+  0%,30%{opacity:0;transform:translateX(-50%) scale(.85)}
+  38%,80%{opacity:1;transform:translateX(-50%) scale(1)}
+  90%,100%{opacity:0}
 }
-@keyframes optionsAppear{
-  0%,30%{opacity:0;transform:translateX(-50%) scale(.82)}
-  38%,78%{opacity:1;transform:translateX(-50%) scale(1)}
-  88%,100%{opacity:0;transform:translateX(-50%) scale(.9)}
-}
-@keyframes pressRing{
-  0%,18%{opacity:0;transform:translateX(-50%) scale(.75)}
-  24%,40%{opacity:1;transform:translateX(-50%) scale(1.08)}
-  48%,100%{opacity:0;transform:translateX(-50%) scale(1.2)}
-}
-@keyframes arrowUp{
+@keyframes demoArrow{
   0%,38%{opacity:0;transform:translate(-50%,12px)}
-  44%,70%{opacity:1;transform:translate(-50%,-4px)}
-  80%,100%{opacity:0;transform:translate(-50%,-20px)}
+  46%,72%{opacity:1;transform:translate(-50%,-5px)}
+  82%,100%{opacity:0;transform:translate(-50%,-18px)}
 }
 
 </style>
@@ -461,7 +412,21 @@ td.mark{
 
       <div class="own-actions">
         <button id="backSetup" class="back-btn">NAZAD</button>
-        <button id="start" type="button" class="start" style="margin-top:0">ZAPOČNI IGRU</button>
+        <button id="start" class="start" style="margin-top:0">ZAPOČNI IGRU</button>
+      </div>
+    </div>
+
+    <div id="tutorialStep" class="hidden tutorial-step">
+      <div class="tutorial-box">
+        <h3>Brzo biranje oznake</h3>
+        <p>Zadrži prst na polju. Kada se pojave oznake, bez podizanja prsta prevuci nagore do ✓, ✕ ili ? i tek onda pusti.</p>
+        <div class="tutorial-demo">
+          <div class="demo-options"><span>✓</span><span>✕</span><span>?</span></div>
+          <div class="demo-arrow">↑</div>
+          <div class="demo-cell">POLJE</div>
+          <div class="demo-finger"></div>
+        </div>
+        <button id="tutorialContinue" type="button" class="start" style="margin-top:0">RAZUMEM — ZAPOČNI IGRU</button>
       </div>
     </div>
   </section>
@@ -484,26 +449,6 @@ td.mark{
 <div id="markMenu" class="mark-menu hidden" aria-hidden="true">
   <div class="mark-option" data-state="1">✓</div>
 
-
-<div id="gestureTutorial" class="tutorial-overlay hidden" aria-hidden="true">
-  <div class="tutorial-card">
-    <h3>Kako brzo da označiš polje</h3>
-    <p>Zadrži prst na ćeliji, sačekaj da se pojave opcije, zatim bez podizanja prsta prevuci nagore do željenog znaka.</p>
-
-    <div class="tutorial-demo">
-      <div class="demo-options">
-        <span>✓</span><span>✕</span><span>?</span>
-      </div>
-      <div class="demo-arrow">↑</div>
-      <div class="demo-ring"></div>
-      <div class="demo-cell">POLJE</div>
-      <div class="demo-finger"></div>
-    </div>
-
-    <button id="tutorialContinue" type="button" class="tutorial-btn">RAZUMEM — ZAPOČNI IGRU</button>
-  </div>
-</div>
-
 <script>
 (function(){
   const groups = [
@@ -520,9 +465,9 @@ td.mark{
   const basicSetup = document.getElementById("basicSetup");
   const ownCardsStep = document.getElementById("ownCardsStep");
   const cardPicker = document.getElementById("cardPicker");
-  const markMenu = document.getElementById("markMenu");
-  const gestureTutorial = document.getElementById("gestureTutorial");
+  const tutorialStep = document.getElementById("tutorialStep");
   const tutorialContinue = document.getElementById("tutorialContinue");
+  const markMenu = document.getElementById("markMenu");
   let touchHold = null;
 
   let playerCount = 2;
@@ -900,15 +845,14 @@ td.mark{
     basicSetup.classList.remove("hidden");
   });
 
-  function showGestureTutorial(){
-    gestureTutorial.classList.remove("hidden");
-    gestureTutorial.setAttribute("aria-hidden","false");
-  }
+  document.getElementById("start").addEventListener("click",function(){
+    ownCardsStep.classList.add("hidden");
+    tutorialStep.classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  });
 
-  function beginCluedoGame(){
-    gestureTutorial.classList.add("hidden");
-    gestureTutorial.setAttribute("aria-hidden","true");
-
+  tutorialContinue.addEventListener("click",function(){
+    tutorialStep.classList.add("hidden");
     renderGame();
     applyMyCards();
     updateDeductions();
@@ -916,17 +860,7 @@ td.mark{
     game.classList.remove("hidden");
     save();
     window.scrollTo({top:0,behavior:"smooth"});
-  }
-
-  document.getElementById("start").onclick = showGestureTutorial;
-  tutorialContinue.onclick = beginCluedoGame;
-
-  gestureTutorial.addEventListener("click",function(e){
-    if(e.target===gestureTutorial){
-      beginCluedoGame();
-    }
   });
-
 
   document.getElementById("clear").addEventListener("click",function(){
     document.querySelectorAll(".mark").forEach(td=>{
@@ -942,7 +876,7 @@ td.mark{
 
   document.getElementById("new").addEventListener("click",function(){
     localStorage.removeItem("cluedo-mobile-v1");
-    playerCount=2;players=[];myCards=new Set();game.classList.add("hidden");setup.classList.remove("hidden");ownCardsStep.classList.add("hidden");basicSetup.classList.remove("hidden");
+    playerCount=2;players=[];myCards=new Set();game.classList.add("hidden");setup.classList.remove("hidden");ownCardsStep.classList.add("hidden");tutorialStep.classList.add("hidden");basicSetup.classList.remove("hidden");
     renderCounts();renderNames();window.scrollTo({top:0,behavior:"smooth"});
   });
 
