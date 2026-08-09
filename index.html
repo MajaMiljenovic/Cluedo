@@ -205,6 +205,7 @@ th,td{
 
 
 .mark-menu{
+  display:none;
   position:fixed;
   z-index:9999;
   display:flex;
@@ -217,7 +218,7 @@ th,td{
   transform:translate(-50%,-100%);
   touch-action:none;
 }
-.mark-menu.hidden{display:none}
+.mark-menu.hidden{display:none !important}
 .mark-option{
   width:43px;
   height:43px;
@@ -775,6 +776,7 @@ td.mark{
     const r=td.getBoundingClientRect();
 
     markMenu.classList.remove("hidden");
+    markMenu.style.display="flex";
     markMenu.style.visibility="hidden";
 
     const mw=markMenu.offsetWidth || 235;
@@ -801,6 +803,7 @@ td.mark{
   function hideMarkMenu(){
     markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
     markMenu.classList.add("hidden");
+    markMenu.style.display="none";
     markMenu.setAttribute("aria-hidden","true");
   }
 
