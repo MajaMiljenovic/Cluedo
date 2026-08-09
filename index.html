@@ -488,49 +488,12 @@ td.mark{
   font-size:25px;
   font-weight:1000;
   opacity:0;
-  animation:tapCellMark 4.2s infinite;
+  transition:opacity .12s ease, color .12s ease, background .12s ease;
 }
-.tap-finger{
-  left:50% !important;
-  bottom:-52px !important;
-  animation:tapFingerOnCell 4.2s infinite !important;
-  z-index:7 !important;
-}
-@keyframes tapFingerOnCell{
-  0%,7%{transform:translate(-50%,0)}
-  12%,18%{transform:translate(-50%,-56px) scale(.96)}
-  22%,29%{transform:translate(-50%,0)}
-  34%,40%{transform:translate(-50%,-56px) scale(.96)}
-  44%,51%{transform:translate(-50%,0)}
-  56%,62%{transform:translate(-50%,-56px) scale(.96)}
-  66%,73%{transform:translate(-50%,0)}
-  78%,84%{transform:translate(-50%,-56px) scale(.96)}
-  89%,100%{transform:translate(-50%,0)}
-}
-@keyframes tapCellText{
-  0%,10%{opacity:1}
-  14%,88%{opacity:0}
-  92%,100%{opacity:1}
-}
-@keyframes tapCellMark{
-  0%,10%{opacity:0}
-  14%,31%{opacity:1;color:var(--yellow)}
-  34%,53%{opacity:1;color:#ff2b2f}
-  56%,75%{opacity:1;color:var(--green)}
-  78%,100%{opacity:0}
-}
-  14%,31%{opacity:1;color:var(--green)}
-  34%,53%{opacity:1;color:#ff2b2f}
-  56%,75%{opacity:1;color:var(--yellow)}
-  78%,100%{opacity:0}
-}
-.tap-cell-mark::before{
-  content:"";
-  animation:tapCellSymbol 4.2s infinite;
-}
-@keyframes tapCellSymbol{
-  0%,10%{content:""}
-  14%,31%{content:"?"}
+.tap-cell-mark.show{opacity:1}
+.tap-cell-mark.q{color:var(--yellow);background:#2a2414}
+.tap-cell-mark.x{color:#ff2b2f;background:#261416}
+.tap-cell-mark.check{color:var(--green);background:#12231d}
   34%,53%{content:"✕"}
   56%,75%{content:"✓"}
   78%,100%{content:""}
@@ -575,7 +538,7 @@ td.mark{
 
         <div class="tutorial-demo tap-demo">
           <div class="demo-label">1. Kratak pritisak više puta</div>
-          <div class="demo-cell tap-cell"><span class="tap-cell-text">POLJE</span><span class="tap-cell-mark"></span></div>
+          <div class="demo-cell tap-cell"><span class="tap-cell-text">POLJE</span><span class="tap-cell-mark" id="tapDemoMark"></span></div>
           <div class="demo-finger tap-finger"></div>
         </div>
 
@@ -634,6 +597,8 @@ td.mark{
   const cardPicker = document.getElementById("cardPicker");
   const tutorialStep = document.getElementById("tutorialStep");
   const tutorialContinue = document.getElementById("tutorialContinue");
+  const tapDemoMark = document.getElementById("tapDemoMark");
+  let tapDemoTimer = null;
   const markMenu = document.getElementById("markMenu");
   let touchHold = null;
 
@@ -781,19 +746,16 @@ td.mark{
       return;
     }
 
-    // Removing/changing a ✓ restores the row to the exact state
-    // it had before that ✓ was selected.
+    // Removing/changing a ✓ restores the rest of the row to the state
+    // it had before the ✓ was selected. The cell being edited then gets
+    // exactly the new state chosen by the user — including blank.
     if(oldState===1 && rowBackups[rowPrefix]){
       restoreRow();
 
-      // If the user chose ? or ✕, apply that new choice after restoring.
-      // If the user chose blank, leave the entire row exactly as it was.
-      if(s!==0){
-        td.dataset.state=String(s);
-        td.dataset.autoX="0";
-        td.textContent=symbol(s);
-        td.className="mark s"+s;
-      }
+      td.dataset.state=String(s);
+      td.dataset.autoX="0";
+      td.textContent=symbol(s);
+      td.className="mark"+(s?" s"+s:"");
 
       updateDeductions();
       save();
@@ -1101,13 +1063,48 @@ td.mark{
     basicSetup.classList.remove("hidden");
   });
 
-  document.getElementById("start").addEventListener("click",function(){
+  
+  function startTapDemo(){
+    if(tapDemoTimer) clearInterval(tapDemoTimer);
+
+    const states=[
+      {text:"", cls:""},
+      {text:"?", cls:"q"},
+      {text:"✕", cls:"x"},
+      {text:"✓", cls:"check"},
+      {text:"", cls:""}
+    ];
+    let i=0;
+
+    function renderTapDemo(){
+      const s=states[i];
+      tapDemoMark.textContent=s.text;
+      tapDemoMark.className="tap-cell-mark"+(s.text ? " show "+s.cls : "");
+      i=(i+1)%states.length;
+    }
+
+    renderTapDemo();
+    tapDemoTimer=setInterval(renderTapDemo,840);
+  }
+
+  function stopTapDemo(){
+    if(tapDemoTimer){
+      clearInterval(tapDemoTimer);
+      tapDemoTimer=null;
+    }
+    tapDemoMark.textContent="";
+    tapDemoMark.className="tap-cell-mark";
+  }
+
+document.getElementById("start").addEventListener("click",function(){
     ownCardsStep.classList.add("hidden");
     tutorialStep.classList.remove("hidden");
+    startTapDemo();
     window.scrollTo({top:0,behavior:"smooth"});
   });
 
   tutorialContinue.addEventListener("click",function(){
+    stopTapDemo();
     tutorialStep.classList.add("hidden");
     renderGame();
     applyMyCards();
@@ -1133,7 +1130,7 @@ td.mark{
 
   document.getElementById("new").addEventListener("click",function(){
     localStorage.removeItem("cluedo-mobile-v1");
-    playerCount=2;players=[];myCards=new Set();rowBackups={};game.classList.add("hidden");setup.classList.remove("hidden");ownCardsStep.classList.add("hidden");tutorialStep.classList.add("hidden");basicSetup.classList.remove("hidden");
+    playerCount=2;players=[];myCards=new Set();rowBackups={};stopTapDemo();game.classList.add("hidden");setup.classList.remove("hidden");ownCardsStep.classList.add("hidden");tutorialStep.classList.add("hidden");basicSetup.classList.remove("hidden");
     renderCounts();renderNames();window.scrollTo({top:0,behavior:"smooth"});
   });
 
