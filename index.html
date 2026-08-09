@@ -273,6 +273,171 @@ td.mark{
   box-shadow:0 0 0 2px rgba(106,199,240,.30);
 }
 
+
+.tutorial-overlay{
+  position:fixed;
+  inset:0;
+  z-index:100000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(3,9,15,.92);
+  backdrop-filter:blur(6px);
+}
+.tutorial-overlay.hidden{display:none}
+.tutorial-card{
+  width:min(92vw,420px);
+  padding:22px 18px 18px;
+  border:1px solid #405565;
+  border-radius:18px;
+  background:linear-gradient(180deg,#101e2b,#0b151f);
+  box-shadow:0 18px 48px rgba(0,0,0,.55);
+  text-align:center;
+}
+.tutorial-card h3{
+  margin:0 0 8px;
+  font-size:22px;
+  color:#fff;
+}
+.tutorial-card p{
+  margin:0 0 18px;
+  color:#bdc8d1;
+  font-size:14px;
+  line-height:1.45;
+}
+.tutorial-demo{
+  position:relative;
+  height:210px;
+  margin:2px auto 16px;
+  border-radius:14px;
+  overflow:hidden;
+  background:#0d1924;
+  border:1px solid #304454;
+}
+.demo-cell{
+  position:absolute;
+  left:50%;
+  bottom:24px;
+  width:90px;
+  height:52px;
+  transform:translateX(-50%);
+  display:grid;
+  place-items:center;
+  border:1px solid #506473;
+  border-radius:9px;
+  background:#111f2b;
+  color:#dfe6eb;
+  font-weight:800;
+  font-size:13px;
+}
+.demo-options{
+  position:absolute;
+  left:50%;
+  bottom:98px;
+  transform:translateX(-50%) scale(.82);
+  display:flex;
+  gap:7px;
+  opacity:0;
+  padding:7px;
+  border:1px solid #4f6473;
+  border-radius:12px;
+  background:#0b1620;
+  animation:optionsAppear 3.2s infinite;
+}
+.demo-options span{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid #405464;
+  border-radius:8px;
+  background:#142331;
+  font-size:22px;
+  font-weight:900;
+}
+.demo-options span:nth-child(1){color:var(--green)}
+.demo-options span:nth-child(2){color:#ff2b2f}
+.demo-options span:nth-child(3){color:var(--yellow)}
+.demo-finger{
+  position:absolute;
+  left:50%;
+  bottom:16px;
+  width:38px;
+  height:56px;
+  transform:translateX(-50%);
+  border-radius:20px 20px 16px 16px;
+  background:linear-gradient(180deg,#f0c5a5,#dba27c);
+  box-shadow:0 5px 14px rgba(0,0,0,.28);
+  animation:fingerGuide 3.2s infinite;
+}
+.demo-finger::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-7px;
+  width:20px;
+  height:13px;
+  transform:translateX(-50%);
+  border-radius:50%;
+  background:#f4cfb4;
+}
+.demo-ring{
+  position:absolute;
+  left:50%;
+  bottom:47px;
+  width:54px;
+  height:54px;
+  transform:translateX(-50%);
+  border:2px solid rgba(89,211,241,.8);
+  border-radius:50%;
+  opacity:0;
+  animation:pressRing 3.2s infinite;
+}
+.demo-arrow{
+  position:absolute;
+  left:50%;
+  bottom:76px;
+  transform:translateX(-50%);
+  color:#67d8f4;
+  font-size:30px;
+  font-weight:900;
+  opacity:0;
+  animation:arrowUp 3.2s infinite;
+}
+.tutorial-btn{
+  width:100%;
+  border:1px solid #ef3b40;
+  border-radius:8px;
+  padding:12px 14px;
+  background:linear-gradient(#d91f25,#b40d12);
+  color:#fff;
+  font-size:15px;
+  font-weight:900;
+  cursor:pointer;
+}
+@keyframes fingerGuide{
+  0%,12%{transform:translate(-50%,0);filter:brightness(1)}
+  22%,38%{transform:translate(-50%,-10px) scale(.96);filter:brightness(.96)}
+  48%,72%{transform:translate(-50%,-88px) scale(.96)}
+  82%,100%{transform:translate(-50%,0);filter:brightness(1)}
+}
+@keyframes optionsAppear{
+  0%,30%{opacity:0;transform:translateX(-50%) scale(.82)}
+  38%,78%{opacity:1;transform:translateX(-50%) scale(1)}
+  88%,100%{opacity:0;transform:translateX(-50%) scale(.9)}
+}
+@keyframes pressRing{
+  0%,18%{opacity:0;transform:translateX(-50%) scale(.75)}
+  24%,40%{opacity:1;transform:translateX(-50%) scale(1.08)}
+  48%,100%{opacity:0;transform:translateX(-50%) scale(1.2)}
+}
+@keyframes arrowUp{
+  0%,38%{opacity:0;transform:translate(-50%,12px)}
+  44%,70%{opacity:1;transform:translate(-50%,-4px)}
+  80%,100%{opacity:0;transform:translate(-50%,-20px)}
+}
+
 </style>
 </head>
 <body>
@@ -319,6 +484,26 @@ td.mark{
 <div id="markMenu" class="mark-menu hidden" aria-hidden="true">
   <div class="mark-option" data-state="1">✓</div>
 
+
+<div id="gestureTutorial" class="tutorial-overlay hidden" aria-hidden="true">
+  <div class="tutorial-card">
+    <h3>Kako brzo da označiš polje</h3>
+    <p>Zadrži prst na ćeliji, sačekaj da se pojave opcije, zatim bez podizanja prsta prevuci nagore do željenog znaka.</p>
+
+    <div class="tutorial-demo">
+      <div class="demo-options">
+        <span>✓</span><span>✕</span><span>?</span>
+      </div>
+      <div class="demo-arrow">↑</div>
+      <div class="demo-ring"></div>
+      <div class="demo-cell">POLJE</div>
+      <div class="demo-finger"></div>
+    </div>
+
+    <button id="tutorialContinue" class="tutorial-btn">RAZUMEM — ZAPOČNI IGRU</button>
+  </div>
+</div>
+
 <script>
 (function(){
   const groups = [
@@ -336,6 +521,8 @@ td.mark{
   const ownCardsStep = document.getElementById("ownCardsStep");
   const cardPicker = document.getElementById("cardPicker");
   const markMenu = document.getElementById("markMenu");
+  const gestureTutorial = document.getElementById("gestureTutorial");
+  const tutorialContinue = document.getElementById("tutorialContinue");
   let touchHold = null;
 
   let playerCount = 2;
@@ -714,6 +901,14 @@ td.mark{
   });
 
   document.getElementById("start").addEventListener("click",function(){
+    gestureTutorial.classList.remove("hidden");
+    gestureTutorial.setAttribute("aria-hidden","false");
+  });
+
+  tutorialContinue.addEventListener("click",function(){
+    gestureTutorial.classList.add("hidden");
+    gestureTutorial.setAttribute("aria-hidden","true");
+
     renderGame();
     applyMyCards();
     updateDeductions();
