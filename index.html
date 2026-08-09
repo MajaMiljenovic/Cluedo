@@ -339,9 +339,10 @@ td.mark{
   background:#142331;
   font-size:22px;font-weight:900;
 }
-.demo-options span:nth-child(1){color:var(--green)}
+.demo-options span:nth-child(1){color:var(--yellow)}
 .demo-options span:nth-child(2){color:#ff2b2f}
-.demo-options span:nth-child(3){color:var(--yellow)}
+.demo-options span:nth-child(3){color:var(--green)}
+.demo-options span:nth-child(4){color:#aab5bd}
 .demo-finger{
   position:absolute;
   left:50%;
@@ -513,6 +514,11 @@ td.mark{
 }
 @keyframes tapCellMark{
   0%,10%{opacity:0}
+  14%,31%{opacity:1;color:var(--yellow)}
+  34%,53%{opacity:1;color:#ff2b2f}
+  56%,75%{opacity:1;color:var(--green)}
+  78%,100%{opacity:0}
+}
   14%,31%{opacity:1;color:var(--green)}
   34%,53%{opacity:1;color:#ff2b2f}
   56%,75%{opacity:1;color:var(--yellow)}
@@ -524,6 +530,11 @@ td.mark{
 }
 @keyframes tapCellSymbol{
   0%,10%{content:""}
+  14%,31%{content:"?"}
+  34%,53%{content:"✕"}
+  56%,75%{content:"✓"}
+  78%,100%{content:""}
+}
   14%,31%{content:"✓"}
   34%,53%{content:"✕"}
   56%,75%{content:"?"}
@@ -544,7 +555,7 @@ td.mark{
       <div class="step"><span class="badge">2</span>Unesi imena protivnika</div>
       <div class="names" id="names"></div>
 
-      <button id="toCards" class="start">DALJE</button>
+      <button id="toCards" class="start">DALJE — MOJE KARTE</button>
     </div>
 
     <div id="ownCardsStep" class="hidden own-step">
@@ -578,7 +589,7 @@ td.mark{
           <div class="demo-finger drag-finger"></div>
         </div>
 
-        <button id="tutorialContinue" type="button" class="start" style="margin-top:0">RAZUMEM</button>
+        <button id="tutorialContinue" type="button" class="start" style="margin-top:0">RAZUMEM — ZAPOČNI IGRU</button>
       </div>
     </div>
   </section>
@@ -592,21 +603,25 @@ td.mark{
     <div class="legend panel">
       <span class="my-legend">Plavo ime</span> = Moja karta (protivnici automatski imaju zaključan ✕) &nbsp; <span class="g">✓</span> = Protivnik ima &nbsp; <span class="r">✕</span> = Protivnik nema &nbsp;
       <span class="y">?</span> = Ne znam &nbsp; □ = prazno
-      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko pola sekunde. Kada se pojave ✓ ✕ ? □, bez podizanja prsta prevuci na željeni znak i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
+      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko pola sekunde. Kada se pojave ? ✕ ✓ □, bez podizanja prsta prevuci na željeni znak i pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
     </div>
   </section>
 </div>
 
 
 <div id="markMenu" class="mark-menu hidden" aria-hidden="true">
+  <div class="mark-option" data-state="3">?</div>
+  <div class="mark-option" data-state="2">✕</div>
   <div class="mark-option" data-state="1">✓</div>
+  <div class="mark-option" data-state="0">□</div>
+</div>
 
 <script>
 (function(){
   const groups = [
     {title:"KO?", icon:"♟", items:["Grin","Mastard","Pikok","Plam","Skarlet","Vajt"]},
-    {title:"ČIM?", icon:"🗡", items:["Svećnjak","Bodež","Olovna cev","Revolver","Konopac","Ključ"]},
-    {title:"GDE?", icon:"⌖", items:["Balska dvorana","Soba za bilijar","Staklena bašta","Trpezarija","Dvorana","Kuhinja","Biblioteka","Gostinska soba","Radna soba"]}
+    {title:"ČIM?", icon:"◆", items:["Svećnjak","Bodež","Olovna cev","Revolver","Konopac","Ključ"]},
+    {title:"GDE?", icon:"●", items:["Balska dvorana","Soba za bilijar","Staklena bašta","Trpezarija","Dvorana","Kuhinja","Biblioteka","Gostinska soba","Radna soba"]}
   ];
 
   const counts = document.getElementById("counts");
@@ -711,6 +726,18 @@ td.mark{
 
   function setCellState(td,s){
     if(td.dataset.locked==="1") return;
+
+    if(s===1){
+      const parts=td.dataset.key.split("-");
+      const rowPrefix=parts[0]+"-"+parts[1]+"-";
+      document.querySelectorAll('.mark[data-key^="'+rowPrefix+'"]').forEach(cell=>{
+        if(cell===td || cell.dataset.locked==="1") return;
+        cell.dataset.state="2";
+        cell.textContent=symbol(2);
+        cell.className="mark s2";
+      });
+    }
+
     td.dataset.state=String(s);
     td.textContent=symbol(s);
     td.className="mark"+(s?" s"+s:"");
@@ -808,8 +835,9 @@ td.mark{
     td.addEventListener("click",function(){
       if("ontouchstart" in window) return;
       if(td.dataset.locked==="1") return;
-      const s=(Number(td.dataset.state)+1)%4;
-      setCellState(td,s);
+      const current=Number(td.dataset.state);
+      const cycle={0:3,3:2,2:1,1:0};
+      setCellState(td,cycle[current]);
     });
 
     td.addEventListener("contextmenu",function(e){
@@ -862,8 +890,9 @@ td.mark{
       hideMarkMenu();
     }else if(!touchHold.moved){
       // Short tap keeps the old cycle behavior.
-      const s=(Number(touchHold.cell.dataset.state)+1)%4;
-      setCellState(touchHold.cell,s);
+      const current=Number(touchHold.cell.dataset.state);
+      const cycle={0:3,3:2,2:1,1:0};
+      setCellState(touchHold.cell,cycle[current]);
     }
 
     touchHold=null;
