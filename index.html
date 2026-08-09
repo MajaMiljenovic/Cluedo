@@ -203,6 +203,67 @@ th,td{
   .card-pick{font-size:12px;padding:7px}
 }
 
+
+.mark-menu{
+  position:fixed;
+  z-index:9999;
+  display:flex;
+  gap:6px;
+  padding:7px;
+  border:1px solid #536777;
+  border-radius:12px;
+  background:#0b1620;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+  transform:translate(-50%,-100%);
+  touch-action:none;
+}
+.mark-menu.hidden{display:none}
+.mark-option{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  border:1px solid #435665;
+  background:#142331;
+  font-size:23px;
+  font-weight:1000;
+  user-select:none;
+}
+.mark-option[data-state="1"]{color:var(--green)}
+.mark-option[data-state="2"]{color:#ff2b2f}
+.mark-option[data-state="3"]{color:var(--yellow)}
+.mark-option[data-state="0"]{color:#aab5bd;font-size:20px}
+.mark-option.hovered{
+  transform:scale(1.14);
+  background:#24394a;
+  border-color:#90a6b6;
+}
+
+
+td.mark.locked-my-card{
+  color:#ff2b2f !important;
+  background:#211417 !important;
+  cursor:not-allowed;
+  opacity:.92;
+}
+td.mark.locked-my-card::after{
+  content:"";
+}
+
+
+td.mark{
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+  touch-action:manipulation;
+}
+.mark-menu{
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+}
+
 </style>
 </head>
 <body>
@@ -238,9 +299,9 @@ th,td{
     </div>
     <div id="sheet" class="panel sheet"></div>
     <div class="legend panel">
-      <span class="my-legend">Plavo ime</span> = Moja karta &nbsp; <span class="g">✓</span> = Protivnik ima &nbsp; <span class="r">✕</span> = Protivnik nema &nbsp;
+      <span class="my-legend">Plavo ime</span> = Moja karta (protivnici automatski imaju zaključan ✕) &nbsp; <span class="g">✓</span> = Protivnik ima &nbsp; <span class="r">✕</span> = Protivnik nema &nbsp;
       <span class="y">?</span> = Ne znam &nbsp; □ = prazno
-      <div class="note">Dodirni ćeliju: ✓ → ✕ → ? → prazno. Ako je karta kod tebe ili je neki protivnik ima, označava se kao NIJE. Ako karta nije kod tebe i svi protivnici imaju ✕, automatski postaje KONAČAN ODGOVOR.</div>
+      <div class="note">Kratak dodir menja stanje redom. Za direktan izbor zadrži prst na ćeliji oko pola sekunde, ne podiži ga, prevuci na ✓, ✕, ? ili □ i tek onda pusti. Ako je karta kod tebe ili je neki protivnik ima, taj red ima kvačicu i označava se kao NIJE. ✕ samo znači da taj protivnik nema kartu i nikada sam po sebi ne određuje rešenje. Tek kada u jednoj grupi svi redovi osim jednog imaju bar jednu kvačicu, jedini red bez kvačice automatski postaje KONAČAN ODGOVOR.</div>
     </div>
   </section>
 </div>
@@ -261,6 +322,12 @@ th,td{
   const basicSetup = document.getElementById("basicSetup");
   const ownCardsStep = document.getElementById("ownCardsStep");
   const cardPicker = document.getElementById("cardPicker");
+  const markMenu = document.getElementById("markMenu");
+  let pressTimer = null;
+  let menuCell = null;
+  let longPressOpened = false;
+  let selectedMenuState = null;
+  let suppressNextClick = false;
 
   let playerCount = 2;
   let players = [];
@@ -324,15 +391,216 @@ th,td{
   }
 
   function applyMyCards(){
+    // Reset visual ownership and unlock all cells first.
     document.querySelectorAll(".item").forEach(el=>el.classList.remove("my-owned-card"));
+    document.querySelectorAll(".mark").forEach(td=>{
+      td.classList.remove("locked-my-card");
+      td.dataset.locked="0";
+    });
+
     myCards.forEach(key=>{
       const parts=key.split("-");
       const label=document.querySelector('.item[data-item-key="'+parts[0]+'-'+parts[1]+'"]');
       if(label) label.classList.add("my-owned-card");
+
+      // If I own this card, every opponent must have X and those cells are locked.
+      document.querySelectorAll('.mark[data-key^="'+parts[0]+'-'+parts[1]+'-"]').forEach(td=>{
+        td.dataset.state="2";
+        td.dataset.locked="1";
+        td.textContent="✕";
+        td.className="mark s2 locked-my-card";
+      });
     });
   }
 
   function symbol(s){ return s===1?"✓":s===2?"✕":s===3?"?":""; }
+
+
+  function setCellState(td,s){
+    if(td.dataset.locked==="1") return;
+    td.dataset.state=String(s);
+    td.textContent=symbol(s);
+    td.className="mark"+(s?" s"+s:"");
+    updateDeductions();
+    save();
+  }
+
+  function positionMarkMenu(td){
+    const r=td.getBoundingClientRect();
+
+    // First show it invisibly so we know its real width.
+    markMenu.style.visibility="hidden";
+    markMenu.classList.remove("hidden");
+
+    const mw=markMenu.offsetWidth || 205;
+    const half=mw/2;
+    let center=r.left+r.width/2;
+
+    // Keep the chooser inside the viewport.
+    center=Math.max(half+8,Math.min(window.innerWidth-half-8,center));
+
+    markMenu.style.left=center+"px";
+    markMenu.style.top=Math.max(70,r.top-10)+"px";
+    markMenu.style.visibility="visible";
+  }
+
+  function openMarkMenu(td){
+    menuCell=td;
+    longPressOpened=true;
+    selectedMenuState=null;
+    markMenu.setAttribute("aria-hidden","false");
+    positionMarkMenu(td);
+    if(navigator.vibrate) navigator.vibrate(20);
+  }
+
+  function closeMarkMenu(applyChoice){
+    if(applyChoice && menuCell && selectedMenuState!==null){
+      setCellState(menuCell,selectedMenuState);
+    }
+    markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
+    markMenu.classList.add("hidden");
+    markMenu.setAttribute("aria-hidden","true");
+    menuCell=null;
+    selectedMenuState=null;
+    setTimeout(()=>{longPressOpened=false},60);
+  }
+
+  function updateMenuHover(x,y){
+    let found=null;
+    markMenu.querySelectorAll(".mark-option").forEach(o=>{
+      const r=o.getBoundingClientRect();
+      const inside=x>=r.left && x<=r.right && y>=r.top && y<=r.bottom;
+      o.classList.toggle("hovered",inside);
+      if(inside) found=Number(o.dataset.state);
+    });
+    selectedMenuState=found;
+  }
+
+  function attachMarkGestures(td){
+    let touchStartX=0;
+    let touchStartY=0;
+    let touchMoved=false;
+
+    function beginLongPress(clientX,clientY){
+      if(td.dataset.locked==="1") return;
+      touchStartX=clientX;
+      touchStartY=clientY;
+      touchMoved=false;
+      clearTimeout(pressTimer);
+      pressTimer=setTimeout(()=>{
+        openMarkMenu(td);
+      },420);
+    }
+
+    function moveLongPress(clientX,clientY){
+      if(Math.abs(clientX-touchStartX)>8 || Math.abs(clientY-touchStartY)>8){
+        touchMoved=true;
+      }
+
+      if(!markMenu.classList.contains("hidden") && menuCell===td){
+        updateMenuHover(clientX,clientY);
+      }else if(touchMoved){
+        clearTimeout(pressTimer);
+      }
+    }
+
+    function finishLongPress(clientX,clientY){
+      clearTimeout(pressTimer);
+
+      if(!markMenu.classList.contains("hidden") && menuCell===td){
+        updateMenuHover(clientX,clientY);
+        closeMarkMenu(true);
+        return true;
+      }
+      return false;
+    }
+
+    // iPhone / Android
+    td.addEventListener("touchstart",function(e){
+      if(td.dataset.locked==="1") return;
+      if(e.touches.length!==1) return;
+      const t=e.touches[0];
+      beginLongPress(t.clientX,t.clientY);
+    },{passive:true});
+
+    td.addEventListener("touchmove",function(e){
+      if(td.dataset.locked==="1") return;
+      if(e.touches.length!==1) return;
+      const t=e.touches[0];
+
+      if(!markMenu.classList.contains("hidden") && menuCell===td){
+        // While the chooser is open, stop the page from scrolling
+        // so the finger can slide cleanly across the options.
+        e.preventDefault();
+      }
+
+      moveLongPress(t.clientX,t.clientY);
+    },{passive:false});
+
+    td.addEventListener("touchend",function(e){
+      if(td.dataset.locked==="1") return;
+
+      const t=e.changedTouches && e.changedTouches[0];
+      const x=t ? t.clientX : touchStartX;
+      const y=t ? t.clientY : touchStartY;
+
+      const usedMenu=finishLongPress(x,y);
+      if(usedMenu){
+        e.preventDefault();
+        return;
+      }
+
+      // A normal short tap still cycles through states.
+      if(!touchMoved){
+        let s=(Number(td.dataset.state)+1)%4;
+        setCellState(td,s);
+        suppressNextClick=true;
+        setTimeout(()=>{suppressNextClick=false},350);
+      }
+    },{passive:false});
+
+    td.addEventListener("touchcancel",function(){
+      clearTimeout(pressTimer);
+      if(!markMenu.classList.contains("hidden") && menuCell===td){
+        closeMarkMenu(false);
+      }
+    });
+
+    // Desktop / laptop mouse
+    td.addEventListener("mousedown",function(e){
+      if(td.dataset.locked==="1" || e.button!==0) return;
+      beginLongPress(e.clientX,e.clientY);
+    });
+
+    td.addEventListener("mousemove",function(e){
+      if(e.buttons!==1) return;
+      moveLongPress(e.clientX,e.clientY);
+    });
+
+    td.addEventListener("mouseup",function(e){
+      if(td.dataset.locked==="1") return;
+      const usedMenu=finishLongPress(e.clientX,e.clientY);
+      if(usedMenu){
+        suppressNextClick=true;
+        setTimeout(()=>{suppressNextClick=false},350);
+      }
+    });
+
+    td.addEventListener("click",function(){
+      if(td.dataset.locked==="1") return;
+      if(suppressNextClick || longPressOpened) return;
+
+      // On non-touch devices a normal click cycles states.
+      if(!("ontouchstart" in window)){
+        let s=(Number(td.dataset.state)+1)%4;
+        setCellState(td,s);
+      }
+    });
+
+    td.addEventListener("contextmenu",function(e){
+      e.preventDefault();
+    });
+  }
 
   function renderGame(){
     sheet.innerHTML="";
@@ -366,15 +634,7 @@ th,td{
           td.className="mark";
           td.dataset.key=gi+"-"+ii+"-"+pi;
           td.dataset.state="0";
-          td.addEventListener("click",function(){
-            let s=(Number(td.dataset.state)+1)%4;
-            td.dataset.state=String(s);
-            td.textContent=symbol(s);
-            td.className="mark"+(s?" s"+s:"");
-
-            updateDeductions();
-            save();
-          });
+          attachMarkGestures(td);
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
@@ -388,6 +648,8 @@ th,td{
 
   function updateDeductions(){
     groups.forEach((g,gi)=>{
+      const rowInfo=[];
+
       g.items.forEach((item,ii)=>{
         const rowKey=gi+"-"+ii;
         const label=document.querySelector('.item[data-item-key="'+rowKey+'"]');
@@ -396,21 +658,30 @@ th,td{
         const cells=[...document.querySelectorAll('.mark[data-key^="'+rowKey+'-"]')];
         const states=cells.map(td=>Number(td.dataset.state||0));
 
-        // Ako je karta kod tebe ili je neki protivnik ima, nije u koverti.
-        const someoneHas = myCards.has(rowKey) || states.includes(1);
-
-        // Ako karta nije kod tebe i svi protivnici imaju ✕, ona je konačan odgovor.
-        const everyoneNo = !myCards.has(rowKey) &&
-                           states.length===players.length &&
-                           states.every(s=>s===2);
+        // Red ima kvačicu ako je karta kod mene ili je neki protivnik ima.
+        // Sam ✕ NIKADA ne znači da je to konačan odgovor.
+        const hasCheck = myCards.has(rowKey) || states.includes(1);
 
         label.classList.remove("not-answer","final-answer");
-        if(everyoneNo){
-          label.classList.add("final-answer");
-        }else if(someoneHas){
+
+        if(hasCheck){
           label.classList.add("not-answer");
         }
+
+        rowInfo.push({label,hasCheck});
       });
+
+      // Tek kada SVI redovi osim jednog u grupi imaju bar jednu kvačicu,
+      // jedini preostali red bez kvačice postaje konačan odgovor.
+      const rowsWithCheck=rowInfo.filter(r=>r.hasCheck);
+
+      if(rowsWithCheck.length===rowInfo.length-1){
+        const remaining=rowInfo.find(r=>!r.hasCheck);
+        if(remaining){
+          remaining.label.classList.remove("not-answer");
+          remaining.label.classList.add("final-answer");
+        }
+      }
     });
   }
 
@@ -458,7 +729,12 @@ th,td{
   });
 
   document.getElementById("clear").addEventListener("click",function(){
-    document.querySelectorAll(".mark").forEach(td=>{td.dataset.state="0";td.textContent="";td.className="mark"});
+    document.querySelectorAll(".mark").forEach(td=>{
+      td.dataset.state="0";
+      td.dataset.locked="0";
+      td.textContent="";
+      td.className="mark";
+    });
     applyMyCards();
     updateDeductions();
     save();
@@ -489,5 +765,13 @@ th,td{
   }
 })();
 </script>
+
+<div id="markMenu" class="mark-menu hidden" aria-hidden="true">
+  <div class="mark-option" data-state="1">✓</div>
+  <div class="mark-option" data-state="2">✕</div>
+  <div class="mark-option" data-state="3">?</div>
+  <div class="mark-option" data-state="0">□</div>
+</div>
+
 </body>
 </html>
