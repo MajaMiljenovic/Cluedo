@@ -505,6 +505,20 @@ td.mark{
   78%,100%{content:""}
 }
 
+
+/* Hard-hide the floating chooser until long press opens it */
+.mark-menu{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+}
+.mark-menu.open{
+  display:flex !important;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+
 </style>
 </head>
 <body>
@@ -601,6 +615,8 @@ td.mark{
   const tapDemoMark = document.getElementById("tapDemoMark");
   let tapDemoTimer = null;
   const markMenu = document.getElementById("markMenu");
+  markMenu.classList.remove("open");
+  markMenu.classList.add("hidden");
   let touchHold = null;
 
   let playerCount = 2;
@@ -776,7 +792,7 @@ td.mark{
     const r=td.getBoundingClientRect();
 
     markMenu.classList.remove("hidden");
-    markMenu.style.display="flex";
+    markMenu.classList.add("open");
     markMenu.style.visibility="hidden";
 
     const mw=markMenu.offsetWidth || 235;
@@ -794,7 +810,8 @@ td.mark{
       markMenu.style.transform="translate(-50%,0)";
     }
 
-    markMenu.style.visibility="visible";
+    markMenu.style.setProperty("visibility","visible","important");
+    markMenu.style.setProperty("opacity","1","important");
     markMenu.setAttribute("aria-hidden","false");
   }
 
@@ -802,8 +819,10 @@ td.mark{
 
   function hideMarkMenu(){
     markMenu.querySelectorAll(".mark-option").forEach(o=>o.classList.remove("hovered"));
+    markMenu.classList.remove("open");
     markMenu.classList.add("hidden");
-    markMenu.style.display="none";
+    markMenu.style.removeProperty("visibility");
+    markMenu.style.removeProperty("opacity");
     markMenu.setAttribute("aria-hidden","true");
   }
 
