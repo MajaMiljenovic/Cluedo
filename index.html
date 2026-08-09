@@ -471,6 +471,65 @@ td.mark{
   77%,100%{content:"";color:transparent}
 }
 
+
+.tap-demo .tap-cell{
+  bottom:24px;
+  overflow:hidden;
+}
+.tap-cell-text{
+  animation:tapCellText 4.2s infinite;
+}
+.tap-cell-mark{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  font-size:25px;
+  font-weight:1000;
+  opacity:0;
+  animation:tapCellMark 4.2s infinite;
+}
+.tap-finger{
+  left:50% !important;
+  bottom:-52px !important;
+  animation:tapFingerOnCell 4.2s infinite !important;
+  z-index:7 !important;
+}
+@keyframes tapFingerOnCell{
+  0%,7%{transform:translate(-50%,0)}
+  12%,18%{transform:translate(-50%,-56px) scale(.96)}
+  22%,29%{transform:translate(-50%,0)}
+  34%,40%{transform:translate(-50%,-56px) scale(.96)}
+  44%,51%{transform:translate(-50%,0)}
+  56%,62%{transform:translate(-50%,-56px) scale(.96)}
+  66%,73%{transform:translate(-50%,0)}
+  78%,84%{transform:translate(-50%,-56px) scale(.96)}
+  89%,100%{transform:translate(-50%,0)}
+}
+@keyframes tapCellText{
+  0%,10%{opacity:1}
+  14%,88%{opacity:0}
+  92%,100%{opacity:1}
+}
+@keyframes tapCellMark{
+  0%,10%{opacity:0}
+  14%,31%{opacity:1;color:var(--green)}
+  34%,53%{opacity:1;color:#ff2b2f}
+  56%,75%{opacity:1;color:var(--yellow)}
+  78%,100%{opacity:0}
+}
+.tap-cell-mark::before{
+  content:"";
+  animation:tapCellSymbol 4.2s infinite;
+}
+@keyframes tapCellSymbol{
+  0%,10%{content:""}
+  14%,31%{content:"✓"}
+  34%,53%{content:"✕"}
+  56%,75%{content:"?"}
+  78%,100%{content:""}
+}
+
 </style>
 </head>
 <body>
@@ -505,8 +564,7 @@ td.mark{
 
         <div class="tutorial-demo tap-demo">
           <div class="demo-label">1. Kratak pritisak više puta</div>
-          <div class="tap-symbol" id="tapSymbol"></div>
-          <div class="demo-cell tap-cell">POLJE</div>
+          <div class="demo-cell tap-cell"><span class="tap-cell-text">POLJE</span><span class="tap-cell-mark"></span></div>
           <div class="demo-finger tap-finger"></div>
         </div>
 
