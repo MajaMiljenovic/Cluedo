@@ -413,6 +413,64 @@ td.mark{
   82%,100%{opacity:0;transform:translate(-50%,-18px)}
 }
 
+
+.demo-label{
+  position:absolute;
+  left:12px;
+  top:10px;
+  z-index:6;
+  color:#dbe4ea;
+  font-size:12px;
+  font-weight:800;
+}
+.tap-demo{height:170px}
+.drag-demo{height:205px}
+.tap-cell{bottom:24px}
+.tap-symbol{
+  position:absolute;
+  left:50%;
+  bottom:80px;
+  transform:translateX(-50%);
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  font-size:25px;
+  font-weight:1000;
+  opacity:0;
+  animation:tapSymbolCycle 4.2s infinite;
+}
+.tap-symbol::before{content:"✓";color:var(--green);animation:tapTextCycle 4.2s infinite}
+.tap-finger{
+  animation:tapFinger 4.2s infinite !important;
+}
+.drag-finger{
+  animation:demoFinger 3.6s infinite !important;
+}
+@keyframes tapFinger{
+  0%,8%{transform:translate(-50%,0)}
+  12%,18%{transform:translate(-50%,-9px) scale(.96)}
+  22%,30%{transform:translate(-50%,0)}
+  34%,40%{transform:translate(-50%,-9px) scale(.96)}
+  44%,52%{transform:translate(-50%,0)}
+  56%,62%{transform:translate(-50%,-9px) scale(.96)}
+  66%,100%{transform:translate(-50%,0)}
+}
+@keyframes tapSymbolCycle{
+  0%,10%{opacity:0;background:transparent}
+  14%,30%{opacity:1;background:#12231d}
+  34%,52%{opacity:1;background:#261416}
+  56%,74%{opacity:1;background:#2a2414}
+  78%,100%{opacity:0;background:transparent}
+}
+@keyframes tapTextCycle{
+  0%,32%{content:"✓";color:var(--green)}
+  33%,54%{content:"✕";color:#ff2b2f}
+  55%,76%{content:"?";color:var(--yellow)}
+  77%,100%{content:"";color:transparent}
+}
+
 </style>
 </head>
 <body>
@@ -442,14 +500,26 @@ td.mark{
 
     <div id="tutorialStep" class="hidden tutorial-step">
       <div class="tutorial-box">
-        <h3>Brzo biranje oznake</h3>
-        <p>Zadrži prst na polju. Kada se pojave oznake, bez podizanja prsta prevuci nagore do ✓, ✕ ili ? i tek onda pusti.</p>
-        <div class="tutorial-demo">
-          <div class="demo-options"><span>✓</span><span>✕</span><span>?</span></div>
+        <h3>Kako da označavaš polja</h3>
+        <p>Možeš kratko da pritiskaš isto polje više puta ili da zadržiš prst i prevučeš do željenog znaka.</p>
+
+        <div class="tutorial-demo tap-demo">
+          <div class="demo-label">1. Kratak pritisak više puta</div>
+          <div class="tap-symbol" id="tapSymbol"></div>
+          <div class="demo-cell tap-cell">POLJE</div>
+          <div class="demo-finger tap-finger"></div>
+        </div>
+
+        <div class="tutorial-demo drag-demo">
+          <div class="demo-label">2. Zadrži i prevuci nagore</div>
+          <div class="demo-options">
+            <span>✓</span><span>✕</span><span>?</span>
+          </div>
           <div class="demo-arrow">↑</div>
           <div class="demo-cell">POLJE</div>
-          <div class="demo-finger"></div>
+          <div class="demo-finger drag-finger"></div>
         </div>
+
         <button id="tutorialContinue" type="button" class="start" style="margin-top:0">RAZUMEM — ZAPOČNI IGRU</button>
       </div>
     </div>
