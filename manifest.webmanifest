@@ -1,6 +1,6 @@
 {
-  "name": "Cluedo beleške",
-  "short_name": "Cluedo",
+  "name": "Detective Notes beleške",
+  "short_name": "Detective Notes",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#07111c",

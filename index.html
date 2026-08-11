@@ -505,8 +505,8 @@ td.mark{
 }
 
 
-/* Original branding: not the official Cluedo/Hasbro wordmark */
-.logo, .brand, .cluedo-logo{
+/* Original branding: not the official Detective Notes/Hasbro wordmark */
+.logo, .brand, .detective-notes-logo{
   font-family: Georgia, "Times New Roman", serif !important;
   font-weight: 900 !important;
   letter-spacing: .055em !important;
@@ -1056,7 +1056,7 @@ td.mark{
       if(td.dataset.autoX==="1") autoX[td.dataset.key]=1;
     });
 
-    localStorage.setItem("cluedo-mobile-v1",JSON.stringify({
+    localStorage.setItem("detective-notes-mobile-v1",JSON.stringify({
       players,
       marks,
       autoX,
@@ -1155,13 +1155,13 @@ document.getElementById("start").addEventListener("click",function(){
   });
 
   document.getElementById("new").addEventListener("click",function(){
-    localStorage.removeItem("cluedo-mobile-v1");
+    localStorage.removeItem("detective-notes-mobile-v1");
     playerCount=2;players=[];myCards=new Set();rowBackups={};stopTapDemo();game.classList.add("hidden");setup.classList.remove("hidden");ownCardsStep.classList.add("hidden");tutorialStep.classList.add("hidden");basicSetup.classList.remove("hidden");
     renderCounts();renderNames();window.scrollTo({top:0,behavior:"smooth"});
   });
 
   function load(){
-    const raw=localStorage.getItem("cluedo-mobile-v1");
+    const raw=localStorage.getItem("detective-notes-mobile-v1");
     if(!raw)return;
     try{
       const data=JSON.parse(raw);
