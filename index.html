@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#07111c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cluedo">
+<meta name="apple-mobile-web-app-title" content="Detective Notes">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Cluedo beleške</title>
+<title>Detective Notes</title>
 <style>
 :root{
   --bg:#07111c; --panel:#0d1823; --panel2:#13212d; --line:#415361;
@@ -504,6 +504,17 @@ td.mark{
   78%,100%{content:""}
 }
 
+
+/* Original branding: not the official Cluedo/Hasbro wordmark */
+.logo, .brand, .cluedo-logo{
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-weight: 900 !important;
+  letter-spacing: .055em !important;
+  text-transform: uppercase;
+  color: #f5f0e7 !important;
+  text-shadow: 0 2px 0 #65080c, 0 5px 12px rgba(0,0,0,.72) !important;
+}
+
 </style>
 </head>
 <body>
@@ -518,7 +529,7 @@ td.mark{
       <div class="step"><span class="badge">2</span>Unesi imena protivnika</div>
       <div class="names" id="names"></div>
 
-      <button id="toCards" class="start">DALJE</button>
+      <button id="toCards" class="start">DALJE — MOJE KARTE</button>
     </div>
 
     <div id="ownCardsStep" class="hidden own-step">
@@ -527,7 +538,7 @@ td.mark{
 
       <div class="own-actions">
         <button id="backSetup" class="back-btn">NAZAD</button>
-        <button id="start" class="start" style="margin-top:0">DALJE</button>
+        <button id="start" class="start" style="margin-top:0">ZAPOČNI IGRU</button>
       </div>
     </div>
 
@@ -552,7 +563,7 @@ td.mark{
           <div class="demo-finger drag-finger"></div>
         </div>
 
-        <button id="tutorialContinue" type="button" class="start" style="margin-top:0">RAZUMEM</button>
+        <button id="tutorialContinue" type="button" class="start" style="margin-top:0">RAZUMEM — ZAPOČNI IGRU</button>
       </div>
     </div>
   </section>
@@ -578,8 +589,8 @@ td.mark{
 (function(){
   const groups = [
     {title:"KO?", icon:"♟", items:["Grin","Mastard","Pikok","Plam","Skarlet","Vajt"]},
-    {title:"ČIM?", icon:"🗡", items:["Svećnjak","Bodež","Olovna cev","Revolver","Konopac","Ključ"]},
-    {title:"GDE?", icon:"▣", items:["Balska dvorana","Soba za bilijar","Staklena bašta","Trpezarija","Dvorana","Kuhinja","Biblioteka","Gostinska soba","Radna soba"]}
+    {title:"ČIM?", icon:"◆", items:["Svećnjak","Bodež","Olovna cev","Revolver","Konopac","Ključ"]},
+    {title:"GDE?", icon:"●", items:["Balska dvorana","Soba za bilijar","Staklena bašta","Trpezarija","Dvorana","Kuhinja","Biblioteka","Gostinska soba","Radna soba"]}
   ];
 
   const counts = document.getElementById("counts");
